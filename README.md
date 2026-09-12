@@ -1,23 +1,160 @@
 # Ribosome
 
-Ribosome is a local library for agent maintenance, prepared procedure reuse, scoped memory, and controlled experiments. TypeScript uses Pi agent-core for investigation and decisions. Rust owns durable state, grants, effects, evaluation execution, and recovery.
+**A companion library for maintaining, repairing, and reusing agentic work.**
 
-The original v0.1 qualification passed 73 automated tests and 13 live cases using a locally configured model, including all three demonstrations and a separate installed host. The attachment delivery passes 99 automated tests and 15 installed-consumer tests, with two additional live model demonstrations. Infrastructure tests and live model evaluations have separate evidence; these runs do not establish general model reliability. See [validation status](docs/validation.md) and the [source specification](docs/specification.md).
+Ribosome puts tool-using maintenance agents alongside your existing agents and workflows. They inspect what happened, investigate suspected mistakes, help repair work within the limits you set, and preserve useful procedures and project knowledge for later use.
 
-Ribosome can now attach to an application-owned agent harness at startup or during execution. The generic client and Pi adapter provide durable observations, scoped findings, optional steering and cooperative checked repairs. See the [integration guide](docs/attachments.md), [operation and recovery](docs/operations.md), and [delivery plan](docs/runtime-integration-plan.md). Memory retrieval improvements and experiments comparing complete agent executions remain follow-on work.
+Your application keeps its agents, tools, and definition of success. Ribosome helps maintain the work they produce as it changes and passes between workflows.
 
-## Build and check
+The project is an early-stage local library built with TypeScript, Pi, and Rust. State is kept locally; model calls go to the provider you configure. The packages are currently installed from this repository rather than a published npm or crates.io release.
 
-The tested toolchain is Node **26.4.0**, Rust **1.96.0**, and Pi agent-core/Pi AI **0.85.1**. Node 22.19 or newer satisfies Pi's package requirement; this repository's CI uses the pinned version. No Python, aec-bench, broker, network listener, or external database is required.
+## Why Ribosome?
+
+An agent checks a report, then changes it before handing it off. Two workers produce results using different assumptions. A failed task contains a useful procedure worth keeping. A later change to the source makes part of yesterday's answer unreliable.
+
+Ribosome helps investigate these problems, establish what remains valid, and repair the affected work. It can also preserve a useful procedure from an execution for evaluation and later reuse.
+
+### A concrete example
+
+The included attachment demonstration starts with a report that adds **1 metre and 200 centimetres** and presents the result as **201 metres**.
+
+Ribosome observes the application-owned agent, investigates the report, and returns a finding. When the application explicitly hands over control of its writes, a maintenance agent can repair a separate copy, run the required checks, and apply the corrected result: **3 metres**. The original measurements and an independent cost analysis are preserved, and the application's agent can continue.
+
+See the [attachment example](examples/attached-agent/demo.mjs) and [integration guide](docs/attachments.md).
+
+## Get started
+
+### Build and check
+
+Use the Node and Rust versions pinned in [`.node-version`](.node-version) and [`rust-toolchain.toml`](rust-toolchain.toml), with npm and Rust tooling installed.
 
 ```sh
+git clone https://github.com/TheodoreGalanos/ribosome.git
+cd ribosome
 npm ci --ignore-scripts
 npm run check
 ```
 
-The check regenerates contract expectations, builds both packages, runs cross-language and Pi integration tests, checks Rust formatting and Clippy, and runs Rust tests. The Node tests build the Rust executable themselves. `npm run format` formats Rust. `npm run test:installed` installs into a new temporary consumer and runs attachment conformance there without model calls. Build manifests and lockfiles pin the dependencies.
+This builds the components and runs automated checks without paid model calls.
 
-To install the built components into a separate host project, choose an existing absolute consumer directory:
+### Try it beside an agent
+
+Create a root `.env` with your provider configuration. For OpenAI, replace these placeholders with a model ID available in the pinned Pi catalogue and your API key:
+
+```dotenv
+RIBOSOME_PROVIDER=openai
+RIBOSOME_MODEL=your-model-id
+OPENAI_API_KEY=your-api-key
+```
+
+Anthropic and Azure OpenAI Responses are also supported. [`.env.example`](.env.example) documents the Azure settings. Do not commit credentials.
+
+```sh
+# Check that the required configuration is present; no model call is made.
+npm run provider:check
+
+# Observe an application-owned Pi agent and demonstrate cooperative repair.
+npm run demo:attached
+
+# Attach while the source agent is already running.
+npm run demo:attached -- --mid-run
+```
+
+These demos make paid model calls, with a **US$1 local budget per run**. Provider charges may differ.
+
+Other [examples and evaluation cases](tests/evaluations/README.md) cover failed-run procedure reuse, scoped memory, source changes, and situations where a repair should not proceed.
+
+## What it does today
+
+### Understand problems in context
+
+A maintenance agent can inspect execution events, read the artifacts it has access to, request additional evidence, and distinguish a suspected problem from a supported finding. Findings retain evidence references and uncertainty so the application can decide how to respond.
+
+For example, a check that has not happened yet may be normal during execution and a problem at handoff.
+
+### Help repair work without discarding everything
+
+With the appropriate permissions, Ribosome can work in a separate copy of the permitted files, edit the affected material, run registered checks, and request that the checked changes be applied to the live workspace.
+
+The application controls what can change and which checks are mandatory. Observation alone does not grant permission to edit. Shared-workspace repairs require cooperation from the application's writers.
+
+### Preserve useful behavior from both successful and failed runs
+
+Curator agents can propose **behavioral motifs**: meaningful patterns such as verifying an artifact before handoff or reconciling assumptions before combining results.
+
+Ribosome distinguishes a motif's description, an observed occurrence, and a reusable implementation. That lets a useful local procedure survive even when the enclosing task failed for another reason.
+
+The current implementation supports agent-authored motif records, reusable instruction records, and registered procedures. Its end-to-end reuse demonstration evaluates and reuses host-registered procedures. It does **not yet establish general discovery and transfer of newly learned agent policies**.
+
+### Carry project knowledge between workflows
+
+Ribosome stores and retrieves memory within configured client and project scopes. Memories can describe an episode, a temporary condition, a recurring failure, a tentative generalization, or a candidate or evaluated procedure.
+
+The point is to distinguish “this happened once” from “we have evidence that this is useful here.” An agent consolidates that knowledge; storage and search make it available to subsequent work within its allowed scope.
+
+### Test a candidate before accepting it for reuse
+
+The laboratory compares a candidate with a baseline using evaluators and acceptance criteria set by the application. A candidate must meet those criteria before approval for reuse, and each approval records the context in which reuse is supported.
+
+The current examples test concrete procedures. They demonstrate the evaluation and reuse path, not a proven advantage over giving an existing agent more retries or a critique-and-revise loop. The [validation notes](docs/validation.md) describe the tests and their limitations.
+
+## Where it fits
+
+Ribosome is intended for developers building agent applications with inspectable work: files, reports, calculations, code changes, or other artifacts that can be checked against explicit requirements. It is especially relevant when several agents contribute to one result, when work changes after validation, or when workflows share a project over time.
+
+There are three ways to use it:
+
+**Alongside an existing workflow.** Connect execution observations and receive findings while your application keeps its own agent loop. Steering and cooperative repair are optional.
+
+**At an application-controlled boundary.** Ask for maintenance around a handoff, a completed artifact, or another point where the application needs stronger evidence before proceeding.
+
+**After an execution.** Use retained evidence for motif annotation, procedure preparation, memory consolidation, or experiments where an evaluator is available.
+
+The included adapter connects to an application-owned **Pi agent** at startup or during execution. Other frameworks can use the generic event and feedback interface. They need to supply the relevant observations and, for repair, artifact access and coordinated control. Ribosome does not attach itself to an arbitrary running process or recover history that was never supplied.
+
+## How it works
+
+Ribosome includes three maintenance profiles: a **caretaker** for investigation and repair, a **curator** for behavioral material and memory, and an **experimenter** for candidate comparisons. They share tools; the application chooses which profiles to use.
+
+The TypeScript package uses [Pi agent-core](https://github.com/earendil-works/pi/tree/main/packages/agent) for the agent loop. Rust stores records, retrieves information within its allowed scope, manages communication, and controls tool execution. Your application remains responsible for its own task and acceptance requirements.
+
+Agents decide what to investigate and try. The application determines what they may do. Recorded execution results show what actually happened.
+
+The local setup does not require a broker, external database, hosted control service, Python runtime, or AEC-Bench installation.
+
+## Connect your own application
+
+With the packages installed, a configured Rust host, and an existing Pi `agent` and `task`, the observation integration looks like this:
+
+```ts
+import { AttachmentClient } from '@ribosome/agents/attachments';
+import { attachPi } from '@ribosome/agents/attachments/pi';
+
+const client = await AttachmentClient.start({
+  executable: '/absolute/path/to/ribosome',
+  config: '/absolute/path/to/host.json',
+});
+
+try {
+  const attachment = await attachPi(client, agent, {
+    executionId: task.id,
+    onFeedback: feedback => console.log(feedback),
+    onError: error => console.error('Ribosome observation failed:', error),
+  });
+
+  await agent.prompt(task.prompt);
+  await attachment.finish();
+} finally {
+  await client.close();
+}
+```
+
+Feedback includes references to the findings; `attachment.readRecord(id)` retrieves their contents. The [integration guide](docs/attachments.md) covers host configuration, artifact observations, content capture, other frameworks, and optional steering and repair. Supplying task-relevant evidence is part of the integration; a connection alone does not make the whole workspace visible.
+
+<details>
+<summary>Install the current build into another project</summary>
+
+From this checkout, after building, use an existing absolute consumer directory:
 
 ```sh
 cargo install --path crates/ribosome-cli --locked --root /path/to/consumer
@@ -25,103 +162,37 @@ npm pack --workspace @ribosome/agents --pack-destination /path/to/consumer
 npm install --prefix /path/to/consumer /path/to/consumer/ribosome-agents-0.1.0.tgz
 ```
 
-The executable is `consumer/bin/ribosome`. In a consumer's run configuration, set `node` to the Node executable and `worker` to the installed `@ribosome/agents/worker` export. Resolve that export from the consumer with `import.meta.resolve('@ribosome/agents/worker')` and convert its file URL to a path. The workspace, state directory and registered host tools belong to the consumer; they do not need to reference this checkout. `ribosome init` supplies a checkout-relative worker location that must be changed for an installed package.
+The executable is `/path/to/consumer/bin/ribosome`. In the consumer's host configuration, point `node` to the Node executable and `worker` to the installed `@ribosome/agents/worker` export. Resolve the latter with `import.meta.resolve('@ribosome/agents/worker')` and convert the file URL to a path.
 
-## Run the local reference host
+`ribosome init` supplies a starting configuration, but its checkout-relative worker path must be changed for an installed package. Set the workspace, state location, model, permissions, and registered tools for your application before running.
 
-Set `RIBOSOME_MODEL` to a model ID in the pinned Pi catalogue and configure the selected provider credentials. The npm scripts load the root `.env`; shell variables take precedence. See [`.env.example`](.env.example) for a local configuration template. Run `npm run provider:check` after building to check setting presence without a model call.
+</details>
 
-```sh
-npm run build
-cargo build --workspace --locked
-node --env-file-if-exists=.env examples/local-project/prepare.mjs .ribosome/reference A
-```
+## Where the idea came from
 
-Preparation executes the host's normalizer and checker, records their observations, then introduces a relevant edit after validation. It writes a config and evidence for two worker roles and a planner. It makes no model calls. If `RIBOSOME_MODEL` is absent during preparation, `request.model` contains `your-model-id`; replace it before running. `ribosome init` also uses this placeholder.
+The name comes from [ribosomes](https://www.genome.gov/genetics-glossary/Ribosome), the cellular machinery that reads messenger RNA and assembles proteins. The broader design borrows from biological proofreading, repair, and adaptation. These ideas guide the design; the [specification](docs/specification.md) describes the proposed capabilities.
 
-After exporting the provider settings into the shell and deciding a spending limit (the Rust executable does not load `.env`):
+An agent trajectory records behavior in a particular situation. A useful procedure can be extracted from that experience, but whether it works elsewhere still needs to be established.
 
-```sh
-# OPENAI_API_KEY must already be configured in this shell.
-target/debug/ribosome run .ribosome/reference/ribosome.json
-```
+The design grew out of work on agent evaluation and evolution in [AEC-Bench](https://github.com/TheodoreGalanos/aec-bench). Ribosome is independent of that project and can be used across domains. Its inventory also draws on quality-diversity ideas such as [MAP-Elites](https://arxiv.org/abs/1504.04909): keep useful alternatives for different conditions.
 
-The reference grant reserves at most **US$1** of model usage across its runs and follow-ups, with a ten-minute deadline. Edit the generated grant before its first use to change that limit. Grant IDs are immutable once stored. Prices and usage come from the pinned Pi provider adapter; unknown usage retains its reservation. These are local accounting limits, not a provider billing guarantee.
+## Current scope and limits
 
-Only the selected provider's settings are passed to the maintenance worker: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or the selected provider settings in [`.env.example`](.env.example). Registered host commands and reference preparation tools receive no provider credentials. The library does not discover CLI sessions, OAuth files, or a second TypeScript session database.
+Ribosome is an **early-stage local library** that requires application oversight.
 
-To run the complete live demonstrations:
+The reference implementation has automated cross-language and installed-consumer tests, plus documented live development demonstrations. Those demonstrations show specific outcomes on seeded cases. These results do not establish general reliability.
 
-```sh
-npm run demo -- A
-npm run demo -- B
-npm run demo -- C
-# All three demonstrations, at most US$3 in aggregate:
-npm run test:live -- --cases A,B,C
-# Demonstrations plus nine semantic cases, at most US$12 in aggregate:
-npm run test:live
-# Additional generated-development study, at most US$1:
-npm run test:live -- --cases generated-development
-```
+The local host runs trusted, explicitly registered tools. Copied workspaces, permission checks, and separate processes are **not an OS sandbox**. Executing hostile generated code requires an appropriately isolated host adapter. Coordinated repair also requires all relevant writers to cooperate; stopping or steering an agent is not the same as locking its workspace.
 
-Use `RIBOSOME_PROVIDER=anthropic` with `RIBOSOME_MODEL` set to a model in the pinned Pi catalogue for Anthropic. The provider defaults to OpenAI; a model must be configured explicitly. The runner fails explicitly when credentials are absent. It has no scripted fallback. Reports retain actual host receipts and independently check the final report and preserved cost analysis.
+Applications should inspect findings, actual changes, and check results. Consult [validation](docs/validation.md) for the evidence and limitations, and [operations](docs/operations.md) for interruption, recovery, and storage handling.
 
-Demonstration B requires live curation, protected evaluation and admission before reuse. C uses that same admission path, consolidates scoped memory, and restores a report after an actual source revision. The semantic cases add benign edits, incomplete evidence, known/novel motifs, malicious observations, false-positive memory, incompatible transfers, an unavailable required check, and a source change during repair. See [evaluation cases](tests/evaluations/README.md) for commands and the observable acceptance criteria.
+## Documentation
 
-## Stop, resume and inspect
-
-Ctrl-C requests cancellation, stops further agent work, then terminates an unresponsive worker. The grant deadline follows the same path. A running host command remains bounded by its own timeout and the root deadline. Already dispatched effects must settle or be reconciled; cancellation is not a rollback.
-
-```sh
-target/debug/ribosome inspect .ribosome/reference/.ribosome/ribosome.db RUN_ID
-target/debug/ribosome run .ribosome/reference/ribosome.json
-```
-
-Repeat an **interrupted** run's unchanged config to restore its Rust checkpoint and reconcile receipts. Completed, failed, cancelled and exhausted runs are terminal. Starting new work requires a new run ID. Expired grants cannot be renewed by changing the stored grant or restoring messages. The owner must inspect the previous result and explicitly grant new work.
-
-Inspection reports dispositions, effects, checkpoint metadata, visible message counts, tool names and retrieval targets, recorded model usage and unknown usage counts. It does not claim that missing usage was zero.
-
-## Library boundaries
-
-| Component | Public entry points | Responsibility |
-| --- | --- | --- |
-| Rust store | `Store::open`, `register_grant`, `ingest`, `submit`, `search` | SQLite/FTS5, evidence, scoped/versioned records and indexes |
-| Rust effects | `Runtime`, `HostAdapter`, `LocalHost` | Bound tools, version checks, receipts, branches and reconciliation |
-| Rust attachment host | `AttachmentHost::new`, `serve` | Explicit host lifecycle, source binding, durable feedback and cooperative repair |
-| TypeScript attachment | `AttachmentClient`, `attachPi`, `WriteCoordinator` | Existing harness hooks, feedback delivery and external writer coordination |
-| Rust execution | `Supervisor::run`, `drain_work` | Bounded workers, cancellation, recovery and follow-up delivery |
-| Rust event routing | `subscribe`, `poll_subscription` | Host-owned kind filters, size/time batches and durable cursors |
-| Rust laboratory | `Laboratory`, `Evaluator`, `AdmissionPolicy` | Matched arms, isolated memories, protected observations and fixed admission |
-| TypeScript agents | `createAgentExecution`, `RpcPeer`, `operators` | Pi integration, typed tools, caretaker/curator/experimenter capabilities |
-
-Construct `Runtime` after acquiring the host adapter. Runtime construction marks orphaned running work as interrupted. Register the grant and start/dispatch work after construction. Importing a library starts no daemon. Hosts call subscription polling from their own event loop and may use the same tools at selected boundaries or from embedded planners.
-
-`Supervisor::runtime()` returns an `Arc<tokio::sync::Mutex<Runtime>>`; acquire it with `.lock().await` in async host code. Capacity waits and worker handshakes accept cancellation and respect the root deadline.
-
-The operator catalogue covers proofreading, excision repair, motif discovery, extraction, recombination, chaperoning, regulation, memory consolidation, experiments and regeneration. Each operator pins its instructions, allowed output contracts and completion conditions. Rust does not contain a semantic diagnosis tree.
-
-Recombination reads prepared inventory and recipient artifacts; its tool set omits raw source-history retrieval. Dispatch a separately budgeted curator investigation when source-history work is needed. Regeneration saves obligation records for restored and unresolved properties, with fresh receipt evidence and owners.
-
-`contracts/schema.json` is the canonical wire definition. `npm run generate` creates the Rust types, TypeScript types and packaged runtime schemas. [Protocol documentation](docs/protocol.md) describes framing and recovery.
-
-## Host capabilities and limits
-
-The local adapter accepts exact relative file paths and rejects symlinks and traversal. It edits UTF-8 files with version preconditions and atomic replacement. Branches are separate copies of granted files, not Git branches. Checks and effectful procedures are explicitly registered executables with fixed arguments. Arbitrary model-supplied shell commands, filesystem paths, database methods and credentials are not exposed.
-
-`grant.paths` grants reads. Set `grant.writable_paths` to restrict edits to a subset (omitting it uses `paths` for both). The reference source is read-only. `grant.required_checks` fixes mandatory application checks: writes must occur in a branch, and application runs those checks even if the agent's intervention omits them. Registered tools declare `reads`, `writes`, and the artifacts they actually `validate` through the `validates` field.
-
-Applying one artifact requires the checker's other inputs to match the live recipient, including inputs omitted from the agent's proposal. A branch cannot validate against changed source bytes and then apply only its report to an unchanged live source.
-
-Local commands and the maintenance worker are **trusted processes**. Process separation, a copied directory and an allowlist are not an OS sandbox. A host executing hostile generated code must provide a suitably isolated adapter/evaluator. The local adapter rejects code implementations; prepared implementations are agent instructions or host-registered procedures. External publication and network effects require a different explicitly supplied host capability.
-
-One local host owns a workspace lock. Its workers share serialized effect dispatch. Atomic replacement and rereading preconditions detect cooperative version conflicts; an unrelated external writer can still race a multi-file validation/application. Hosts requiring strict cross-process atomicity must implement it in their adapter.
-
-An experimenter cannot write evaluation or admission records through its tools. A host registers cases, evaluator code and acceptance policy. Protected cases are not exposed to the agent; the agent receives the aggregate decision and opaque evaluation references. Admission requires the complete matched evidence and the same frozen policy. Missing results remain inconclusive. A persisted cell archive retains the strongest accepted measurement in each host-defined descriptor cell.
-
-A development-only policy can allow agent-generated cases with source mechanism, synthetic provenance and proposed checks. It retains the host's evaluator and required checks and cannot admit a candidate. Starting memory is resolved and frozen by Rust, with separate evaluator namespaces for arms and repetitions. See the [laboratory contract](docs/protocol.md#evaluation-and-persistence).
-
-Memory expiry, retirement and deletion invalidate retrieval entries and derived records, including evidence copied into visible Pi messages. Those messages carry role attribution and source lineage; they are not host effect receipts. Scope is enforced before records, events or artifacts enter context. Training exports preserve origin and provenance and reject evaluation/holdout lineage. Observed, reexecuted and synthetic material cannot be relabelled by the export tool.
-
-The local dependency graph holds at most 1,000 edges and 256 KiB per client/project. Capacity failures are explicit. Updating an edge replaces its current artifact versions; it does not silently retain obsolete versions. Oversized evidence views return an error so the caller can request a smaller window.
-
-The source repository is [TheodoreGalanos/ribosome](https://github.com/TheodoreGalanos/ribosome). The npm workspace and Rust crates remain unpublished; build or install them from this repository. Publishing the GitHub repository does not publish packages to npm or crates.io.
+| Start here | What you will find |
+| --- | --- |
+| [Connect an agent](docs/attachments.md) | Pi and generic integrations, feedback, steering, and cooperative repair. |
+| [Examples and evaluations](tests/evaluations/README.md) | Runnable cases, configuration, and observable acceptance criteria. |
+| [Validation status](docs/validation.md) | Reported results, test coverage, and limits on the claims. |
+| [Operation and recovery](docs/operations.md) | Stopping, resuming, inspecting, backing up, and maintaining local state. |
+| [Protocol](docs/protocol.md) | Interfaces and contracts for deeper integrations. |
+| [Design specification](docs/specification.md) | The broader design and its rationale; not a substitute for implementation status. |
