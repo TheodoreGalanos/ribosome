@@ -1,0 +1,233 @@
+[
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "9007199254740993",
+      "limit": 10
+    },
+    true
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": 9007199254740992,
+      "limit": 10
+    },
+    false
+  ],
+  [
+    "ArtifactRead",
+    {
+      "path": "file.txt",
+      "offset": 0,
+      "length": 20
+    },
+    true
+  ],
+  [
+    "ArtifactRead",
+    {
+      "path": "file.txt",
+      "offset": 0,
+      "length": 20,
+      "branch_id": null
+    },
+    false
+  ],
+  [
+    "ArtifactRead",
+    {
+      "path": "file.txt",
+      "offset": 0,
+      "length": 20,
+      "grant": "forged"
+    },
+    false
+  ],
+  [
+    "Handshake",
+    {
+      "protocol": "ribosome/2",
+      "build": "0.1.0",
+      "pi": "0.85.1",
+      "session": "test",
+      "capabilities": []
+    },
+    false
+  ],
+  [
+    "Measurement",
+    {
+      "name": "cost",
+      "unit": "USD"
+    },
+    true
+  ],
+  [
+    "Measurement",
+    {
+      "name": "cost",
+      "unit": "USD",
+      "value": null
+    },
+    false
+  ],
+  [
+    "AgentActivityBatch",
+    {
+      "entries": [
+        {
+          "sequence": "1",
+          "role": "assistant",
+          "timestamp_ms": "123",
+          "content": {
+            "parts": [
+              {
+                "type": "text",
+                "text": "Visible claim"
+              }
+            ]
+          },
+          "source_refs": []
+        }
+      ]
+    },
+    true
+  ],
+  [
+    "AgentActivityBatch",
+    {
+      "entries": [
+        {
+          "sequence": 1,
+          "role": "assistant",
+          "timestamp_ms": "123",
+          "content": {},
+          "source_refs": []
+        }
+      ]
+    },
+    false
+  ],
+  [
+    "AgentActivityBatch",
+    {
+      "entries": [
+        {
+          "sequence": "1",
+          "role": "system",
+          "timestamp_ms": "123",
+          "content": {},
+          "source_refs": []
+        }
+      ]
+    },
+    false
+  ],
+  [
+    "DevelopmentCase",
+    {
+      "id": "generated-case",
+      "source_mechanism": "Convert units before summing",
+      "provenance": {
+        "origin": "synthetic",
+        "split": "development",
+        "source_refs": [
+          "observed-event"
+        ],
+        "scenario_family": "unit-conversion",
+        "limitations": [
+          "Related development example"
+        ]
+      },
+      "input": {
+        "measurements": [
+          {
+            "value": 10,
+            "unit": "cm"
+          }
+        ]
+      },
+      "candidate_checks": [
+        "Convert centimetres to metres"
+      ]
+    },
+    true
+  ],
+  [
+    "DevelopmentCase",
+    {
+      "id": "generated-case",
+      "source_mechanism": "",
+      "provenance": {
+        "origin": "synthetic",
+        "split": "development",
+        "source_refs": [
+          "observed-event"
+        ],
+        "scenario_family": "unit-conversion",
+        "limitations": [
+          "Related development example"
+        ]
+      },
+      "input": {
+        "measurements": [
+          {
+            "value": 10,
+            "unit": "cm"
+          }
+        ]
+      },
+      "candidate_checks": [
+        "Convert centimetres to metres"
+      ]
+    },
+    false
+  ],
+  [
+    "HostHelloRequest",
+    {
+      "protocol": "ribosome-host/1"
+    },
+    true
+  ],
+  [
+    "HostHelloRequest",
+    {
+      "protocol": "ribosome/1"
+    },
+    false
+  ],
+  [
+    "AttachmentRequest",
+    {
+      "attachment_id": "one",
+      "grant_id": "forged"
+    },
+    false
+  ],
+  [
+    "AttachmentOpen",
+    {
+      "id": "one",
+      "execution_id": "external",
+      "connector": "custom",
+      "connector_version": "1",
+      "start": "now",
+      "capabilities": [
+        "observe"
+      ]
+    },
+    true
+  ],
+  [
+    "FeedbackAcknowledgement",
+    {
+      "attachment_id": "one",
+      "feedback_id": "two",
+      "outcome": "verified",
+      "detail": ""
+    },
+    false
+  ]
+]

@@ -1,0 +1,3632 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ribosome.local/contracts/1",
+  "$defs": {
+    "Mode": {
+      "type": "string",
+      "enum": [
+        "observe",
+        "sandbox",
+        "apply"
+      ]
+    },
+    "Profile": {
+      "type": "string",
+      "enum": [
+        "caretaker",
+        "curator",
+        "experimenter"
+      ]
+    },
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "reexecuted",
+        "synthetic"
+      ]
+    },
+    "Split": {
+      "type": "string",
+      "enum": [
+        "development",
+        "evaluation",
+        "holdout"
+      ]
+    },
+    "EffectStatus": {
+      "type": "string",
+      "enum": [
+        "started",
+        "succeeded",
+        "failed",
+        "unknown",
+        "denied",
+        "stale"
+      ]
+    },
+    "Disposition": {
+      "type": "string",
+      "description": "completed means the requested outcome is supported; abstained means evidence or authority prevents justified completion (including an unavailable required check); failed means an operation failed and the task could not recover. Use exhausted only after a reported budget/deadline limit, cancelled only for a cancellation request, and interrupted only for actual interruption of execution. A missing tool is not budget exhaustion or interruption.",
+      "enum": [
+        "completed",
+        "abstained",
+        "failed",
+        "cancelled",
+        "exhausted",
+        "interrupted"
+      ]
+    },
+    "RecordKind": {
+      "type": "string",
+      "enum": [
+        "definition",
+        "occurrence",
+        "implementation",
+        "finding",
+        "intervention",
+        "memory",
+        "experiment",
+        "recommendation",
+        "admission",
+        "evaluation",
+        "regulation",
+        "transplant",
+        "obligation"
+      ]
+    },
+    "MemoryKind": {
+      "type": "string",
+      "enum": [
+        "working",
+        "episodic",
+        "aggregated",
+        "procedural",
+        "failure"
+      ]
+    },
+    "Recognition": {
+      "type": "string",
+      "enum": [
+        "tentative",
+        "supported",
+        "rejected"
+      ]
+    },
+    "ObligationState": {
+      "type": "string",
+      "enum": [
+        "open",
+        "satisfied",
+        "violated",
+        "unknown"
+      ]
+    },
+    "AdmissionDecision": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive",
+        "retired"
+      ]
+    },
+    "ExperimentTemplate": {
+      "type": "string",
+      "enum": [
+        "ablation",
+        "rescue",
+        "interaction",
+        "stress",
+        "transfer"
+      ]
+    },
+    "Scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "client": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "client",
+        "project"
+      ]
+    },
+    "VersionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "path",
+        "version"
+      ]
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "Exact accessible record or event IDs returned by Rust. An action operation_id is not an event ID; use its returned evidence_ref for provenance."
+        },
+        "scenario_family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "split": {
+          "$ref": "#/$defs/Split"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "origin",
+        "source_refs",
+        "scenario_family",
+        "split",
+        "limitations"
+      ]
+    },
+    "Budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "max_tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "max_cost_microusd": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "max_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "max_work_items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "deadline_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "max_calls",
+        "max_tokens",
+        "max_cost_microusd",
+        "max_actions",
+        "max_work_items",
+        "max_depth",
+        "deadline_ms"
+      ]
+    },
+    "Grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "mode": {
+          "$ref": "#/$defs/Mode"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Profile"
+          },
+          "maxItems": 1000
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "visible_splits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Split"
+          },
+          "maxItems": 1000
+        },
+        "allow_export": {
+          "type": "boolean"
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "writable_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "mode",
+        "paths",
+        "tools",
+        "profiles",
+        "budget",
+        "context",
+        "visible_splits",
+        "allow_export"
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sequence": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "timestamp_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "correlation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "run_id",
+        "producer",
+        "sequence",
+        "kind",
+        "timestamp_ms",
+        "parents",
+        "correlation",
+        "artifacts",
+        "payload",
+        "provenance"
+      ]
+    },
+    "Dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "dependent": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "host",
+            "observed",
+            "inferred"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "source",
+        "dependent",
+        "basis",
+        "evidence_refs"
+      ]
+    },
+    "Definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "intent": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "applicability": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "recognition_instructions": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "positive_examples": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "counterexamples": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "intent",
+        "applicability",
+        "recognition_instructions",
+        "obligations",
+        "positive_examples",
+        "counterexamples",
+        "checks"
+      ]
+    },
+    "ObligationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "obligation": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "state": {
+          "$ref": "#/$defs/ObligationState"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "obligation",
+        "state",
+        "evidence_refs"
+      ]
+    },
+    "Occurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "execution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "frontier": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "recognition": {
+          "$ref": "#/$defs/Recognition",
+          "description": "Whether this motif occurs, independently of whether it succeeds. supported means the observed pattern matches the definition; it may have violated obligations. tentative means the evidence is insufficient to establish that match; rejected means the pattern does not fit."
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObligationResult"
+          },
+          "maxItems": 1000
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "definition",
+        "execution",
+        "event_refs",
+        "artifacts",
+        "frontier",
+        "recognition",
+        "obligations",
+        "assumptions",
+        "operator"
+      ]
+    },
+    "Implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "motifs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VersionRef"
+          },
+          "maxItems": 1000
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "instructions",
+            "registered_tool"
+          ]
+        },
+        "material": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "For registered_tool, the exact registered tool ID only. For instructions, executable agent guidance. Do not put descriptive prose in a registered tool ID."
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "Exact tool IDs required by this implementation, all present in the host grant tools. Describe state or file assumptions in state_assumptions instead."
+        },
+        "state_assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "possible_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "failure_behavior": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evaluation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "Saved Evaluation record IDs only; leave empty before evaluation. Motif occurrences belong in provenance.source_refs."
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "motifs",
+        "format",
+        "material",
+        "parameters",
+        "required_capabilities",
+        "state_assumptions",
+        "possible_effects",
+        "failure_behavior",
+        "evaluation_refs"
+      ]
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "observation": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "interpretation": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "subject",
+        "observation",
+        "interpretation",
+        "evidence_refs",
+        "uncertainty",
+        "operator"
+      ]
+    },
+    "Intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "repair",
+            "regeneration",
+            "recombination",
+            "chaperone"
+          ]
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "finding_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "read_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "preserve": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "replace": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "invalidate": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "recompute": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "requested_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "fallback": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "kind",
+        "subject",
+        "finding_ref",
+        "read_versions",
+        "preserve",
+        "replace",
+        "invalidate",
+        "recompute",
+        "required_checks",
+        "bindings",
+        "requested_effects",
+        "assumptions",
+        "fallback",
+        "operator"
+      ]
+    },
+    "Memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/MemoryKind"
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "applicability": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "counterexamples": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "responses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "regression_cases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "expires_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Optional absolute Unix timestamp in milliseconds, not a duration. Omit for knowledge without a justified expiry. For a temporary condition, calculate a future timestamp from the trusted run started_ms; an elapsed timestamp makes the memory immediately unavailable."
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "IDs of saved records that contradict this memory, or [] when none are identified. Describe uncertainty in content or provenance.limitations; do not put explanatory prose in this ID list."
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "IDs of saved memories replaced by this one, or [] when none."
+        }
+      },
+      "required": [
+        "kind",
+        "content",
+        "applicability",
+        "evidence_refs",
+        "counterexamples",
+        "responses",
+        "regression_cases",
+        "conflicts",
+        "supersedes"
+      ]
+    },
+    "Experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "template": {
+          "$ref": "#/$defs/ExperimentTemplate"
+        },
+        "candidate": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "baseline": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "hypothesis": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "case_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "scenario_families": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "feedback": {
+          "type": "string",
+          "enum": [
+            "aggregate",
+            "full_development"
+          ]
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The actual model ID from the trusted run configuration, not the evaluator or tool name."
+        },
+        "tool_versions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "memory_start_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000,
+          "description": "IDs of saved Memory records used to initialize each evaluation arm. Use [] when no starting memory is requested. Source event IDs belong in provenance.source_refs, not here."
+        },
+        "repetitions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "selection_frozen": {
+          "type": "boolean"
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variant"
+          },
+          "maxItems": 1000,
+          "description": "Additional experiment arms only. Rust always includes baseline and candidate. Use [] for the ordinary two-arm comparison; do not repeat those arms here. Extra arms consume the host evaluation limit."
+        },
+        "development_cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DevelopmentCase"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "name",
+        "template",
+        "candidate",
+        "baseline",
+        "hypothesis",
+        "case_ids",
+        "scenario_families",
+        "feedback",
+        "model_version",
+        "tool_versions",
+        "memory_start_refs",
+        "repetitions",
+        "budget",
+        "metrics",
+        "policy_id",
+        "selection_frozen",
+        "variants"
+      ]
+    },
+    "Measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "name",
+        "unit"
+      ]
+    },
+    "Evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "experiment_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "arm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "repetition": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "evaluator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "evaluator_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Measurement"
+          },
+          "maxItems": 1000
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "memory_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Opaque ID for isolated evaluation memory; not a filesystem path."
+        },
+        "output": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "descriptor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "experiment_ref",
+        "implementation",
+        "case_id",
+        "arm",
+        "repetition",
+        "evaluator",
+        "evaluator_version",
+        "policy_id",
+        "measurements",
+        "checks",
+        "memory_namespace",
+        "output",
+        "artifact_refs"
+      ]
+    },
+    "Recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "decision": {
+          "$ref": "#/$defs/AdmissionDecision"
+        },
+        "evaluation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "implementation",
+        "context",
+        "decision",
+        "evaluation_refs",
+        "rationale",
+        "restrictions"
+      ]
+    },
+    "Admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "decision": {
+          "$ref": "#/$defs/AdmissionDecision"
+        },
+        "evaluation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "implementation",
+        "context",
+        "decision",
+        "evaluation_refs",
+        "restrictions",
+        "authority",
+        "policy_id",
+        "supersedes"
+      ]
+    },
+    "Regulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "selected_behavior": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "reconsider_when": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "conditions",
+        "selected_behavior",
+        "scope",
+        "reconsider_when",
+        "evidence_refs"
+      ]
+    },
+    "Transplant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "donor": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "adaptations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "incompatibilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "fallback": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "donor",
+        "recipient",
+        "bindings",
+        "adaptations",
+        "incompatibilities",
+        "checks",
+        "fallback"
+      ]
+    },
+    "Obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "state": {
+          "$ref": "#/$defs/ObligationState"
+        },
+        "affected_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "created_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "consequence_boundary": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "description",
+        "owner",
+        "subject",
+        "state",
+        "affected_outputs",
+        "created_ms",
+        "consequence_boundary",
+        "evidence_refs"
+      ]
+    },
+    "RecordEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "kind": {
+          "$ref": "#/$defs/RecordKind"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "created_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "updated_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "retired": {
+          "type": "boolean"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "scope",
+        "kind",
+        "version",
+        "created_ms",
+        "updated_ms",
+        "retired",
+        "provenance",
+        "body"
+      ]
+    },
+    "RecordSubmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/RecordKind"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Omit when creating a record; Rust assigns its ID. Supply an existing record ID only for a permitted update."
+        },
+        "expected_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "kind",
+        "provenance",
+        "body"
+      ]
+    },
+    "Action": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "edit",
+            "check",
+            "branch",
+            "apply",
+            "execute"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "branch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "intervention_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        }
+      },
+      "required": [
+        "operation_id",
+        "kind"
+      ]
+    },
+    "ActionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "$ref": "#/$defs/EffectStatus"
+        },
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "before": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "output": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "side_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "started_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "finished_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "elapsed_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "reconciled": {
+          "type": "boolean"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Exact host event ID for this settled receipt. Use it in provenance.source_refs or evidence_refs. Absent while an intent is still unsettled."
+        }
+      },
+      "required": [
+        "operation_id",
+        "run_id",
+        "status",
+        "action",
+        "before",
+        "after",
+        "output",
+        "side_effects",
+        "started_ms",
+        "reconciled"
+      ]
+    },
+    "Checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "pi-0.85.1/1"
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "maxItems": 1000
+        },
+        "pending_operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "event_cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "format",
+        "profile",
+        "operator",
+        "provider",
+        "model",
+        "messages",
+        "pending_operations",
+        "event_cursor"
+      ]
+    },
+    "AgentRunRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/Checkpoint"
+        }
+      },
+      "required": [
+        "run_id",
+        "profile",
+        "operator",
+        "prompt",
+        "provider",
+        "model"
+      ]
+    },
+    "AgentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "$ref": "#/$defs/Disposition"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "disposition",
+        "summary"
+      ]
+    },
+    "Handshake": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "const": "ribosome/1"
+        },
+        "build": {
+          "type": "string",
+          "const": "0.1.0"
+        },
+        "pi": {
+          "type": "string",
+          "const": "0.85.1"
+        },
+        "session": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "protocol",
+        "build",
+        "pi",
+        "session",
+        "capabilities"
+      ]
+    },
+    "Empty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "IdRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Copy the returned ID verbatim. For a reference {id,version}, pass only id; do not append the separate version."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Ok": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    },
+    "EvidenceRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional filter for the run that produced source events. Omit to read every workflow producer within the grant. Do not substitute a grant ID or invent a run ID."
+        }
+      },
+      "required": [
+        "cursor",
+        "limit"
+      ]
+    },
+    "EvidencePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 1000
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "frontier": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          },
+          "maxItems": 1000
+        },
+        "invalidated_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "events",
+        "cursor",
+        "frontier",
+        "dependencies",
+        "invalidated_paths"
+      ]
+    },
+    "SearchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "kind": {
+          "$ref": "#/$defs/RecordKind"
+        },
+        "inventory": {
+          "type": "string",
+          "enum": [
+            "evidence",
+            "usable"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "query",
+        "inventory",
+        "limit",
+        "offset"
+      ]
+    },
+    "RecordPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RecordEnvelope"
+          },
+          "maxItems": 1000
+        },
+        "next_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "records",
+        "next_offset"
+      ]
+    },
+    "ArtifactRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "branch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Omit to read the live workspace. Supply the branch receipt output to read that isolated copy."
+        }
+      },
+      "required": [
+        "path",
+        "offset",
+        "length"
+      ]
+    },
+    "ArtifactChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "total_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "eof": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifact",
+        "content",
+        "offset",
+        "total_bytes",
+        "eof"
+      ]
+    },
+    "WorkRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "subject",
+        "profile",
+        "operator",
+        "reason",
+        "evidence_refs"
+      ]
+    },
+    "WorkItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "root_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "parent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "exhausted",
+            "interrupted"
+          ]
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "lease_until_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "subject",
+        "profile",
+        "operator",
+        "reason",
+        "evidence_refs",
+        "root_id",
+        "parent_id",
+        "depth",
+        "status",
+        "attempts",
+        "lease_until_ms",
+        "owner"
+      ]
+    },
+    "MessageSend": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recipient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "correlation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "recipient",
+        "topic",
+        "body",
+        "correlation"
+      ]
+    },
+    "Message": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sender": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "correlation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sequence": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "id",
+        "sender",
+        "recipient",
+        "topic",
+        "body",
+        "correlation",
+        "sequence",
+        "attempts"
+      ]
+    },
+    "Inbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "messages"
+      ]
+    },
+    "RetireRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "delete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "expected_version",
+        "delete"
+      ]
+    },
+    "PermitRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "input_tokens_bound": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "cost_microusd_bound": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "max_output_tokens",
+        "input_tokens_bound",
+        "cost_microusd_bound"
+      ]
+    },
+    "Permit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "id",
+        "max_output_tokens"
+      ]
+    },
+    "Usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permit_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "input_tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "output_tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "cost_microusd": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "permit_id",
+        "input_tokens",
+        "output_tokens",
+        "cost_microusd",
+        "complete"
+      ]
+    },
+    "ExperimentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ExperimentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "decision": {
+          "$ref": "#/$defs/AdmissionDecision"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "evaluation_refs",
+        "decision",
+        "summary"
+      ]
+    },
+    "AdmissionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recommendation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "recommendation_id"
+      ]
+    },
+    "ExportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "record_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "product": {
+          "$ref": "#/$defs/Origin"
+        }
+      },
+      "required": [
+        "record_ids",
+        "product"
+      ]
+    },
+    "ExportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "path",
+        "count"
+      ]
+    },
+    "Variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "arm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        }
+      },
+      "required": [
+        "arm",
+        "implementation"
+      ]
+    },
+    "EvaluationTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "experiment_id": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "implementation": {
+          "$ref": "#/$defs/Implementation"
+        },
+        "case_id": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "case_input": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "arm": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "repetition": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "memory_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Opaque ID for isolated evaluation memory. The host supplies the actual workspace separately; command evaluators run in that working directory."
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "memory_start": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RecordEnvelope"
+          },
+          "maxItems": 1000,
+          "description": "Frozen, scope-checked starting memory. The evaluator initializes each new memory_namespace from these records; retained namespaces keep their subsequent learning state."
+        }
+      },
+      "required": [
+        "experiment_id",
+        "implementation",
+        "case_id",
+        "case_input",
+        "arm",
+        "repetition",
+        "memory_namespace",
+        "budget",
+        "memory_start"
+      ]
+    },
+    "EvaluationObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Measurement"
+          },
+          "maxItems": 1000
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
+        },
+        "output": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "descriptor": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "measurements",
+        "checks",
+        "output"
+      ]
+    },
+    "ArchiveCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "cell": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "implementation": {
+          "$ref": "#/$defs/RecordEnvelope"
+        },
+        "quality": {
+          "type": "number"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "context",
+        "policy_id",
+        "cell",
+        "implementation",
+        "quality",
+        "evaluation_id"
+      ]
+    },
+    "ArchivePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArchiveCell"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "cells"
+      ]
+    },
+    "AgentActivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "user",
+            "assistant",
+            "tool_result"
+          ]
+        },
+        "timestamp_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "sequence",
+        "role",
+        "timestamp_ms",
+        "content",
+        "source_refs"
+      ]
+    },
+    "AgentActivityBatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentActivity"
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "DevelopmentCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "source_mechanism": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "candidate_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "source_mechanism",
+        "provenance",
+        "input",
+        "candidate_checks"
+      ]
+    },
+    "AttachmentCapability": {
+      "type": "string",
+      "enum": [
+        "observe",
+        "steer",
+        "coordinated_write"
+      ]
+    },
+    "AttachmentState": {
+      "type": "string",
+      "enum": [
+        "active",
+        "interrupted",
+        "detached",
+        "completed"
+      ]
+    },
+    "FeedbackState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "delivered",
+        "acknowledged",
+        "rejected",
+        "expired",
+        "unknown"
+      ]
+    },
+    "HostHelloRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "const": "ribosome-host/1"
+        }
+      },
+      "required": [
+        "protocol"
+      ]
+    },
+    "HostHello": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "const": "ribosome-host/1"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentCapability"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "protocol",
+        "scope",
+        "capabilities"
+      ]
+    },
+    "AttachmentOpen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "connector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "connector_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "start": {
+          "type": "string",
+          "enum": [
+            "now",
+            "history"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentCapability"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "execution_id",
+        "connector",
+        "connector_version",
+        "start",
+        "capabilities"
+      ]
+    },
+    "RepairHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "work_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "deadline_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "held",
+            "released",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "generation",
+        "work_id",
+        "deadline_ms",
+        "state"
+      ]
+    },
+    "Attachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "connector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "connector_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentCapability"
+          },
+          "maxItems": 100
+        },
+        "state": {
+          "$ref": "#/$defs/AttachmentState"
+        },
+        "source_status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "start_cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "frontier": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "maxItems": 20
+        },
+        "created_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "updated_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "last_error": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "handoff": {
+          "$ref": "#/$defs/RepairHandoff"
+        }
+      },
+      "required": [
+        "id",
+        "grant_id",
+        "scope",
+        "execution_id",
+        "connector",
+        "connector_version",
+        "capabilities",
+        "state",
+        "source_status",
+        "start_cursor",
+        "cursor",
+        "frontier",
+        "coverage",
+        "created_ms",
+        "updated_ms",
+        "last_error"
+      ]
+    },
+    "HarnessEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sequence": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "timestamp_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 100
+        },
+        "correlation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 100
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "id",
+        "producer",
+        "sequence",
+        "kind",
+        "timestamp_ms",
+        "parents",
+        "correlation",
+        "artifacts",
+        "payload"
+      ]
+    },
+    "AttachmentEvents": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HarnessEvent"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "attachment_id",
+        "events"
+      ]
+    },
+    "IngestionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inserted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "duplicates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "inserted",
+        "duplicates",
+        "cursor"
+      ]
+    },
+    "AttachmentRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "attachment_id"
+      ]
+    },
+    "AttachmentStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment": {
+          "$ref": "#/$defs/Attachment"
+        },
+        "queued_work": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "running_work": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "pending_feedback": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "feedback_states": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "attachment",
+        "queued_work",
+        "running_work",
+        "pending_feedback",
+        "usage",
+        "feedback_states"
+      ]
+    },
+    "AttachmentFeedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "finding",
+            "proposal"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/FeedbackState"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "disposition": {
+          "$ref": "#/$defs/Disposition"
+        },
+        "record_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "artifact_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "expires_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "id",
+        "attachment_id",
+        "run_id",
+        "kind",
+        "state",
+        "summary",
+        "disposition",
+        "record_refs",
+        "evidence_refs",
+        "artifact_versions",
+        "expires_ms",
+        "attempts",
+        "detail"
+      ]
+    },
+    "AttachmentFeedbackPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentFeedback"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "FeedbackAcknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "feedback_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "acknowledged",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "attachment_id",
+        "feedback_id",
+        "outcome",
+        "detail"
+      ]
+    },
+    "FeedbackRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "feedback_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "attachment_id",
+        "feedback_id"
+      ]
+    },
+    "AttachmentRecordRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "attachment_id",
+        "record_id"
+      ]
+    },
+    "AttachmentInterruption": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "attachment_id",
+        "reason"
+      ]
+    },
+    "AttachmentRelease": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "generation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "attachment_id",
+        "generation"
+      ]
+    }
+  },
+  "x-methods": {
+    "bridge.hello": [
+      "Handshake",
+      "Handshake"
+    ],
+    "agent.run": [
+      "AgentRunRequest",
+      "AgentResult"
+    ],
+    "agent.cancel": [
+      "Empty",
+      "Ok"
+    ],
+    "agent.steer": [
+      "MessageSend",
+      "Ok"
+    ],
+    "evidence.read": [
+      "EvidenceRequest",
+      "EvidencePage"
+    ],
+    "search.query": [
+      "SearchRequest",
+      "RecordPage"
+    ],
+    "record.read": [
+      "IdRequest",
+      "RecordEnvelope"
+    ],
+    "artifact.read": [
+      "ArtifactRead",
+      "ArtifactChunk"
+    ],
+    "action.execute": [
+      "Action",
+      "ActionReceipt"
+    ],
+    "action.lookup": [
+      "IdRequest",
+      "ActionReceipt"
+    ],
+    "work.request": [
+      "WorkRequest",
+      "WorkItem"
+    ],
+    "record.submit": [
+      "RecordSubmission",
+      "RecordEnvelope"
+    ],
+    "record.retire": [
+      "RetireRequest",
+      "Ok"
+    ],
+    "session.grant": [
+      "Empty",
+      "Grant"
+    ],
+    "session.checkpoint": [
+      "Checkpoint",
+      "Ok"
+    ],
+    "model.permit": [
+      "PermitRequest",
+      "Permit"
+    ],
+    "model.usage": [
+      "Usage",
+      "Ok"
+    ],
+    "message.send": [
+      "MessageSend",
+      "Message"
+    ],
+    "message.inbox": [
+      "Empty",
+      "Inbox"
+    ],
+    "message.ack": [
+      "IdRequest",
+      "Ok"
+    ],
+    "experiment.run": [
+      "ExperimentRequest",
+      "ExperimentResult"
+    ],
+    "inventory.admission_request": [
+      "AdmissionRequest",
+      "RecordEnvelope"
+    ],
+    "training.export": [
+      "ExportRequest",
+      "ExportResult"
+    ],
+    "inventory.archive": [
+      "Empty",
+      "ArchivePage"
+    ],
+    "session.events": [
+      "AgentActivityBatch",
+      "Ok"
+    ]
+  },
+  "x-records": {
+    "definition": "Definition",
+    "occurrence": "Occurrence",
+    "implementation": "Implementation",
+    "finding": "Finding",
+    "intervention": "Intervention",
+    "memory": "Memory",
+    "experiment": "Experiment",
+    "recommendation": "Recommendation",
+    "admission": "Admission",
+    "evaluation": "Evaluation",
+    "regulation": "Regulation",
+    "transplant": "Transplant",
+    "obligation": "Obligation"
+  },
+  "x-host-methods": {
+    "host.hello": [
+      "HostHelloRequest",
+      "HostHello"
+    ],
+    "attachment.open": [
+      "AttachmentOpen",
+      "Attachment"
+    ],
+    "attachment.events": [
+      "AttachmentEvents",
+      "IngestionReceipt"
+    ],
+    "attachment.status": [
+      "AttachmentRequest",
+      "AttachmentStatus"
+    ],
+    "attachment.feedback": [
+      "AttachmentRequest",
+      "AttachmentFeedbackPage"
+    ],
+    "attachment.ack": [
+      "FeedbackAcknowledgement",
+      "Ok"
+    ],
+    "attachment.steer": [
+      "FeedbackRequest",
+      "Ok"
+    ],
+    "attachment.record": [
+      "AttachmentRecordRequest",
+      "RecordEnvelope"
+    ],
+    "attachment.complete": [
+      "AttachmentRequest",
+      "Ok"
+    ],
+    "attachment.detach": [
+      "AttachmentRequest",
+      "Ok"
+    ],
+    "attachment.interrupt": [
+      "AttachmentInterruption",
+      "Ok"
+    ],
+    "attachment.repair": [
+      "AttachmentRequest",
+      "RepairHandoff"
+    ],
+    "attachment.release": [
+      "AttachmentRelease",
+      "Ok"
+    ]
+  }
+}

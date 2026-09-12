@@ -1,0 +1,12 @@
+node_modules/
+target/
+dist/
+.ribosome/
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+.ribosome-host.lock
+.DS_Store
