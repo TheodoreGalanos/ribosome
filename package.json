@@ -14,16 +14,19 @@
     "check:contracts": "node scripts/generate-contracts.mjs --check",
     "build": "npm run build --workspace @ribosome/agents",
     "test": "cargo build --workspace --locked && npm run build && node --test --test-concurrency=4 tests/contracts/*.test.mjs tests/integration/*.test.mjs",
-    "check": "npm run check:contracts && npm test && node scripts/format-rust.mjs --check && node scripts/check-rust.mjs && cargo test --workspace --locked",
+    "check": "npm run docs:check && npm run check:contracts && npm test && node scripts/format-rust.mjs --check && node scripts/check-rust.mjs && cargo test --workspace --locked",
     "test:live": "node --env-file-if-exists=.env tests/evaluations/run.mjs",
     "demo": "node --env-file-if-exists=.env examples/local-project/demo.mjs",
     "provider:check": "node --env-file-if-exists=.env scripts/check-provider.mjs",
     "format": "node scripts/format-rust.mjs",
     "demo:attached": "node --env-file-if-exists=.env examples/attached-agent/demo.mjs",
-    "test:installed": "npm run build && node scripts/qualify-attachment-install.mjs"
+    "test:installed": "npm run build && node scripts/qualify-attachment-install.mjs",
+    "docs:build": "node scripts/build-docs.mjs",
+    "docs:check": "node scripts/build-docs.mjs --check"
   },
   "devDependencies": {
     "@types/node": "26.0.0",
+    "marked": "18.0.13",
     "typescript": "5.9.3"
   }
 }

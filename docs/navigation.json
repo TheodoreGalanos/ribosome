@@ -1,0 +1,46 @@
+{
+  "groups": [
+    {
+      "title": "Start",
+      "pages": [
+        "index",
+        "start/quickstart",
+        "start/installation"
+      ]
+    },
+    {
+      "title": "Core",
+      "pages": [
+        "core/how-it-works",
+        "core/inspiration",
+        "core/motifs"
+      ]
+    },
+    {
+      "title": "Guides",
+      "pages": [
+        "guides/connect",
+        "guides/runtime",
+        "guides/repair",
+        "guides/discovery",
+        "guides/reuse",
+        "guides/memory"
+      ]
+    },
+    {
+      "title": "Evaluation",
+      "pages": [
+        "evaluation/experiments",
+        "evaluation/support"
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        "reference/configuration",
+        "reference/operations",
+        "reference/further-reading"
+      ]
+    }
+  ]
+}
