@@ -1,0 +1,188 @@
+{
+  "definition": {
+    "name": "test-function",
+    "version": "2",
+    "intent": "Establish the conditions for combining contributions",
+    "applicability": "A pending join",
+    "recognition_instructions": "Inspect conditions and cited outcomes",
+    "obligations": [
+      "Compatibility is supported"
+    ],
+    "positive_examples": [],
+    "counterexamples": [],
+    "checks": [],
+    "functional_contract": {
+      "entry": {
+        "inputs": [
+          "contributions"
+        ],
+        "unresolved_state": [
+          "compatibility"
+        ],
+        "prerequisites": [],
+        "not_assumed": [
+          "matching labels prove compatibility"
+        ]
+      },
+      "roles": [
+        {
+          "name": "input",
+          "description": "A contribution and its declared assumptions"
+        },
+        {
+          "name": "verification",
+          "description": "Evidence about compatibility"
+        }
+      ],
+      "decision_points": [
+        {
+          "condition": "Critical assumptions remain unknown",
+          "evidence_required": [
+            "source metadata"
+          ],
+          "responses": [
+            "inspect the source",
+            "leave the join unresolved"
+          ]
+        }
+      ],
+      "exit": {
+        "results": [
+          "supported combination or unresolved requirements"
+        ],
+        "required_reports": [
+          "transformations and limitations"
+        ]
+      },
+      "abstention_conditions": [
+        "No evidence supports a necessary transformation"
+      ],
+      "relations": [],
+      "evaluation_questions": [
+        {
+          "kind": "function",
+          "question": "Does the check establish compatible inputs?"
+        }
+      ]
+    }
+  },
+  "occurrence": {
+    "definition": {
+      "id": "definition",
+      "version": "2"
+    },
+    "execution": "donor",
+    "event_refs": [
+      "input",
+      "check"
+    ],
+    "artifacts": [],
+    "frontier": {
+      "donor/worker": "2"
+    },
+    "recognition": "supported",
+    "obligations": [],
+    "assumptions": [
+      "Interpretation requires review"
+    ],
+    "operator": "discovery@1",
+    "grounding": {
+      "role_bindings": [
+        {
+          "role": "input",
+          "event_refs": [
+            "input"
+          ]
+        },
+        {
+          "role": "verification",
+          "event_refs": [
+            "check"
+          ]
+        }
+      ],
+      "incoming_context_refs": [],
+      "dependency_evidence": [
+        {
+          "source_event_ref": "input",
+          "target_event_ref": "check",
+          "basis": "source_reported",
+          "evidence_refs": [
+            "check"
+          ],
+          "explanation": "The source declared the dependency"
+        }
+      ],
+      "local_outcome": {
+        "state": "satisfied",
+        "evidence_refs": [
+          "check"
+        ],
+        "limitations": [
+          "Global outcome is separate"
+        ]
+      },
+      "annotator": {
+        "run_id": "curator",
+        "operator": "discovery@1"
+      },
+      "recognition_visibility": "retrospective"
+    }
+  },
+  "discovery": {
+    "corpus": {
+      "id": "test-corpus",
+      "version": "1"
+    },
+    "source_windows": [
+      {
+        "execution": "donor",
+        "event_refs": [
+          "input",
+          "check"
+        ],
+        "frontier": {
+          "donor/worker": "2"
+        }
+      }
+    ],
+    "hypotheses": [
+      {
+        "claim": "The worker establishes compatibility before joining",
+        "entry_boundary": "Contributions are available",
+        "exit_boundary": "Compatibility is checked",
+        "conditions": [
+          "A join is pending"
+        ],
+        "support_refs": [
+          "check"
+        ],
+        "contradiction_refs": [],
+        "alternatives": [
+          {
+            "claim": "The check could be redundant",
+            "evidence_refs": [
+              "input"
+            ]
+          }
+        ],
+        "decision": "propose_definition",
+        "uncertainty": "No transfer claim is established"
+      }
+    ],
+    "definition_refs": [
+      {
+        "id": "definition",
+        "version": "2"
+      }
+    ],
+    "occurrence_refs": [],
+    "decision": "supported",
+    "open_questions": [
+      "Does the behavior transfer?"
+    ],
+    "run_refs": [
+      "curator"
+    ]
+  }
+}

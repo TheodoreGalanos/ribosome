@@ -132,10 +132,7 @@ impl Runtime {
         )?;
         if started {
             let receipts = self.reconcile_run(&h.work_id)?;
-            if receipts
-                .iter()
-                .any(|r| matches!(r.status, EffectStatus::Started | EffectStatus::Unknown))
-            {
+            if receipts.iter().any(ActionReceipt::requires_reconciliation) {
                 return Err(Error::conflict(
                     "unknown effects require owner reconciliation; writer handoff remains blocked",
                 ));

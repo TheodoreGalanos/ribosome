@@ -2,6 +2,8 @@
 
 Status: P1–P3 implemented locally, with attachment-focused P6 qualification. P4–P5 remain proposed follow-on work. See [validation](validation.md) for observed results and limits.
 
+The accepted [reliable behavioral learning pass](plans/reliable-behavioral-learning/README.md) now owns the follow-on implementation. Its R5 covers P4 memory/retrieval, and R6 covers P5 complete-agent experiments. R1–R3 establish the required lifecycle and accounting guarantees first; the seven PRDs are the current requirements.
+
 Prepared for Theo on 12 September 2026 from the current v0.1 implementation.
 
 The core delivery is easy integration with an agent harness: connect Ribosome when the harness starts, receive evidence-backed findings during execution, and optionally coordinate checked repairs. Attaching partway through an execution is an additional supported path, not a prerequisite. The integration contract is independent of the agent framework. Memory/retrieval improvements and comparisons of complete agent executions are separate follow-on work. They do not block delivery of attachment.
@@ -206,6 +208,8 @@ Implementation:
 
 ### P5 — Follow-on: compare complete agent executions experimentally
 
+**Current status:** R6 implements the host-owned Pi study adapter, shared accounting, five workflow controls, protected-case separation and aggregate reporting. Its bounded live development comparison was inconclusive. The independently owned attachment workflow described below remains integrated qualification work; see [R6 validation](validation.md#r6-whole-agent-laboratory-library-mechanisms-closed).
+
 **Outcome:** a controlled study can determine whether attachment helped an external task, including its extra work and cost.
 
 Implementation:
@@ -225,6 +229,8 @@ Use five repetitions per case as the initial study design, subject to a predecla
 **Primary files:** `experiments.rs`, `accounting.rs`, reference evaluator, `examples/attached-agent/`, `tests/evaluations/` and protocol documentation. Keep ordinary fixed-command evaluators working unchanged.
 
 ### P6 — Qualify installation, recovery and operation
+
+**Current status:** R7 verifies the packed package and installed binary, combined attachment recovery and source withdrawal, focused migration/export checks, and prepared invocation. The installed live discovery trial produced no executable candidate; behavioral qualification remains incomplete. See [validation](validation.md#r7-integrated-qualification-and-handoff).
 
 **Outcome:** another local application can install and operate the integration without relying on this checkout.
 

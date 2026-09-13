@@ -229,5 +229,1533 @@
       "detail": ""
     },
     false
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "execution_established"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "failed",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "execution_established"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "unknown",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "current_postcondition_observed"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "unknown",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "unresolved"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "denied",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "not_dispatched"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "unknown",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "invented_execution_evidence"
+    },
+    false
+  ],
+  [
+    "ValidationEvidence",
+    {
+      "check_ref": "report-check",
+      "checker_version": "checker-version-one",
+      "policy_version": "owner-policy-one",
+      "authority": "ribosome-host",
+      "receipt_ref": "receipt-check-one",
+      "inputs": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "targets": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ],
+      "outcome": "passed",
+      "generation": "3"
+    },
+    true
+  ],
+  [
+    "ValidationEvidence",
+    {
+      "check_ref": "report-check",
+      "checker_version": "checker-version-one",
+      "policy_version": "owner-policy-one",
+      "authority": "ribosome-host",
+      "receipt_ref": "receipt-check-one",
+      "inputs": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "targets": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ],
+      "outcome": "inferred-pass",
+      "generation": "3"
+    },
+    false
+  ],
+  [
+    "ValidationEvidence",
+    {
+      "check_ref": "report-check",
+      "policy_version": "owner-policy-one",
+      "authority": "ribosome-host",
+      "receipt_ref": "receipt-check-one",
+      "inputs": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "targets": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ],
+      "outcome": "passed",
+      "generation": "3"
+    },
+    false
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "report-check"
+      },
+      "before": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "after": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "output": "Observed check outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "execution_established",
+      "validations": [
+        {
+          "check_ref": "report-check",
+          "checker_version": "checker-version-one",
+          "policy_version": "owner-policy-one",
+          "authority": "ribosome-host",
+          "receipt_ref": "receipt-check-one",
+          "inputs": [
+            {
+              "path": "report.txt",
+              "version": "v2"
+            },
+            {
+              "path": "source.txt",
+              "version": "v1"
+            }
+          ],
+          "targets": [
+            {
+              "path": "report.txt",
+              "version": "v2"
+            }
+          ],
+          "outcome": "passed",
+          "generation": "3"
+        }
+      ],
+      "restored_validity": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ]
+    },
+    true
+  ],
+  [
+    "PropertyBinding",
+    {
+      "obligation": {
+        "id": "obligation-one",
+        "version": "2"
+      },
+      "path": "report.txt"
+    },
+    true
+  ],
+  [
+    "ValidatedProperty",
+    {
+      "obligation": {
+        "id": "obligation-one",
+        "version": "2"
+      },
+      "artifact": {
+        "path": "report.txt",
+        "version": "v2"
+      }
+    },
+    true
+  ],
+  [
+    "PropertyAssessment",
+    {
+      "obligation": {
+        "id": "obligation-one",
+        "version": "2"
+      },
+      "state": "validated",
+      "evidence_refs": [
+        "receipt-check"
+      ]
+    },
+    true
+  ],
+  [
+    "ArtifactValidityRequest",
+    {
+      "path": "report.txt"
+    },
+    true
+  ],
+  [
+    "ArtifactValidity",
+    {
+      "artifact": {
+        "path": "report.txt",
+        "version": "v2"
+      },
+      "snapshot_id": "version-snapshot",
+      "observed_ms": "9007199254740993",
+      "generation": "2",
+      "properties": [
+        {
+          "obligation": {
+            "id": "obligation-one",
+            "version": "2"
+          },
+          "state": "stale",
+          "evidence_refs": []
+        }
+      ]
+    },
+    true
+  ],
+  [
+    "ToolCall",
+    {
+      "call_id": "validity-call",
+      "method": "artifact.validity",
+      "arguments": {
+        "path": "report.txt"
+      }
+    },
+    true
+  ],
+  [
+    "PropertyAssessment",
+    {
+      "obligation": {
+        "id": "obligation-one",
+        "version": "2"
+      },
+      "state": "satisfied",
+      "evidence_refs": []
+    },
+    false
+  ],
+  [
+    "PropertyBinding",
+    {
+      "obligation": {
+        "id": "obligation-one"
+      },
+      "path": "report.txt"
+    },
+    false
+  ],
+  [
+    "ValidationEvidence",
+    {
+      "check_ref": "report-check",
+      "checker_version": "checker-version-one",
+      "policy_version": "owner-policy-one",
+      "authority": "ribosome-host",
+      "receipt_ref": "receipt-check-one",
+      "inputs": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "targets": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ],
+      "outcome": "passed",
+      "generation": "3",
+      "properties": [
+        {
+          "obligation": {
+            "id": "obligation-one",
+            "version": "2"
+          },
+          "artifact": {
+            "path": "report.txt",
+            "version": "v2"
+          }
+        }
+      ]
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "report-check"
+      },
+      "before": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "after": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        },
+        {
+          "path": "source.txt",
+          "version": "v1"
+        }
+      ],
+      "output": "Observed check outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "execution_established",
+      "validations": [
+        {
+          "check_ref": "report-check",
+          "checker_version": "checker-version-one",
+          "policy_version": "owner-policy-one",
+          "authority": "ribosome-host",
+          "receipt_ref": "receipt-check-one",
+          "inputs": [
+            {
+              "path": "report.txt",
+              "version": "v2"
+            },
+            {
+              "path": "source.txt",
+              "version": "v1"
+            }
+          ],
+          "targets": [
+            {
+              "path": "report.txt",
+              "version": "v2"
+            }
+          ],
+          "outcome": "passed",
+          "generation": "3",
+          "properties": [
+            {
+              "obligation": {
+                "id": "obligation-one",
+                "version": "2"
+              },
+              "artifact": {
+                "path": "report.txt",
+                "version": "v2"
+              }
+            }
+          ]
+        }
+      ],
+      "restored_validity": [
+        {
+          "path": "report.txt",
+          "version": "v2"
+        }
+      ],
+      "restored_properties": [
+        {
+          "obligation": {
+            "id": "obligation-one",
+            "version": "2"
+          },
+          "artifact": {
+            "path": "report.txt",
+            "version": "v2"
+          }
+        }
+      ]
+    },
+    true
+  ],
+  [
+    "EffectSettlementRequest",
+    {
+      "operation_id": "uncertain-effect",
+      "expected_receipt_version": "receipt-uncertain",
+      "executor_stopped": true,
+      "workspace_versions": [
+        {
+          "path": "report.txt",
+          "version": "current-content"
+        }
+      ],
+      "reason": "Owner inspected the stopped executor. Fresh validation is still required.",
+      "source_refs": []
+    },
+    true
+  ],
+  [
+    "EffectSettlementRequest",
+    {
+      "operation_id": "uncertain-effect",
+      "expected_receipt_version": "receipt-uncertain",
+      "executor_stopped": false,
+      "workspace_versions": [
+        {
+          "path": "report.txt",
+          "version": "current-content"
+        }
+      ],
+      "reason": "Owner inspected the stopped executor. Fresh validation is still required.",
+      "source_refs": []
+    },
+    false
+  ],
+  [
+    "EffectSettlement",
+    {
+      "request": {
+        "operation_id": "uncertain-effect",
+        "expected_receipt_version": "receipt-uncertain",
+        "executor_stopped": true,
+        "workspace_versions": [
+          {
+            "path": "report.txt",
+            "version": "current-content"
+          }
+        ],
+        "reason": "Owner inspected the stopped executor. Fresh validation is still required.",
+        "source_refs": []
+      },
+      "evidence_ref": "settlement-event",
+      "recorded_ms": "9007199254740993"
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "unknown",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "outcome_basis": "current_postcondition_observed",
+      "settlement": {
+        "request": {
+          "operation_id": "uncertain-effect",
+          "expected_receipt_version": "receipt-uncertain",
+          "executor_stopped": true,
+          "workspace_versions": [
+            {
+              "path": "report.txt",
+              "version": "current-content"
+            }
+          ],
+          "reason": "Owner inspected the stopped executor. Fresh validation is still required.",
+          "source_refs": []
+        },
+        "evidence_ref": "settlement-event",
+        "recorded_ms": "9007199254740993"
+      }
+    },
+    true
+  ],
+  [
+    "EffectInspection",
+    {
+      "receipt": {
+        "operation_id": "effect-fixture",
+        "run_id": "run",
+        "status": "unknown",
+        "action": {
+          "operation_id": "effect-fixture",
+          "kind": "check",
+          "tool": "fixture-check"
+        },
+        "before": [],
+        "after": [],
+        "output": "Observed outcome",
+        "side_effects": [],
+        "started_ms": "1",
+        "reconciled": false,
+        "outcome_basis": "current_postcondition_observed",
+        "settlement": {
+          "request": {
+            "operation_id": "uncertain-effect",
+            "expected_receipt_version": "receipt-uncertain",
+            "executor_stopped": true,
+            "workspace_versions": [
+              {
+                "path": "report.txt",
+                "version": "current-content"
+              }
+            ],
+            "reason": "Owner inspected the stopped executor. Fresh validation is still required.",
+            "source_refs": []
+          },
+          "evidence_ref": "settlement-event",
+          "recorded_ms": "9007199254740993"
+        }
+      },
+      "workspace_versions": [
+        {
+          "path": "report.txt",
+          "version": "current-content"
+        }
+      ],
+      "receipt_version": "receipt-content-version"
+    },
+    true
+  ],
+  [
+    "BudgetAllocationRequest",
+    {
+      "id": "child",
+      "parent_id": "root",
+      "cause_id": "study",
+      "purpose": "experiment",
+      "budget": {
+        "max_calls": 5,
+        "max_tokens": "100",
+        "max_cost_microusd": "100",
+        "max_actions": 5,
+        "max_work_items": 5,
+        "max_depth": 3,
+        "deadline_ms": "9999999999999"
+      }
+    },
+    true
+  ],
+  [
+    "BudgetAllocationRequest",
+    {
+      "id": "child",
+      "parent_id": "root",
+      "cause_id": "study",
+      "purpose": "experiment",
+      "budget": {
+        "max_calls": 5,
+        "max_tokens": "100",
+        "max_cost_microusd": "100",
+        "max_actions": 5,
+        "max_work_items": 5,
+        "max_depth": 3,
+        "deadline_ms": "9999999999999"
+      },
+      "grant_id": "forged"
+    },
+    false
+  ],
+  [
+    "BudgetAllocation",
+    {
+      "id": "child",
+      "parent_id": "root",
+      "cause_id": "study",
+      "purpose": "experiment",
+      "budget": {
+        "max_calls": 5,
+        "max_tokens": "100",
+        "max_cost_microusd": "100",
+        "max_actions": 5,
+        "max_work_items": 5,
+        "max_depth": 3,
+        "deadline_ms": "9999999999999"
+      },
+      "grant_id": "owner"
+    },
+    true
+  ],
+  [
+    "PermitRequest",
+    {
+      "call_id": "call",
+      "max_output_tokens": 10,
+      "input_tokens_bound": "10",
+      "cost_microusd_bound": "20"
+    },
+    true
+  ],
+  [
+    "PermitRequest",
+    {
+      "call_id": "call",
+      "allocation_id": "forged",
+      "max_output_tokens": 10,
+      "input_tokens_bound": "10",
+      "cost_microusd_bound": "20"
+    },
+    false
+  ],
+  [
+    "WorkWaitRequest",
+    {
+      "work_ids": [
+        "child"
+      ]
+    },
+    true
+  ],
+  [
+    "WorkWaitRequest",
+    {
+      "work_ids": []
+    },
+    false
+  ],
+  [
+    "WorkWaitRequest",
+    {
+      "work_ids": [
+        "child",
+        "child"
+      ]
+    },
+    false
+  ],
+  [
+    "WorkWaitRequest",
+    {
+      "work_ids": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+      ]
+    },
+    false
+  ],
+  [
+    "WorkWaitResult",
+    {
+      "work_ids": [
+        "child"
+      ],
+      "wait_required": true
+    },
+    true
+  ],
+  [
+    "WorkStatus",
+    {
+      "work_id": "child",
+      "status": "running",
+      "result_available": false
+    },
+    true
+  ],
+  [
+    "WorkStatus",
+    {
+      "work_id": "child",
+      "status": "completed",
+      "result_available": true,
+      "result": {
+        "disposition": "completed",
+        "summary": "Checked."
+      },
+      "source": {
+        "kind": "event",
+        "id": "completion",
+        "version": "1"
+      }
+    },
+    true
+  ],
+  [
+    "WorkStatus",
+    {
+      "work_id": "child",
+      "status": "invented",
+      "result_available": false
+    },
+    false
+  ],
+  [
+    "Definition",
+    {
+      "name": "test-function",
+      "version": "2",
+      "intent": "Establish the conditions for combining contributions",
+      "applicability": "A pending join",
+      "recognition_instructions": "Inspect conditions and cited outcomes",
+      "obligations": [
+        "Compatibility is supported"
+      ],
+      "positive_examples": [],
+      "counterexamples": [],
+      "checks": [],
+      "functional_contract": {
+        "entry": {
+          "inputs": [
+            "contributions"
+          ],
+          "unresolved_state": [
+            "compatibility"
+          ],
+          "prerequisites": [],
+          "not_assumed": [
+            "matching labels prove compatibility"
+          ]
+        },
+        "roles": [
+          {
+            "name": "input",
+            "description": "A contribution and its declared assumptions"
+          },
+          {
+            "name": "verification",
+            "description": "Evidence about compatibility"
+          }
+        ],
+        "decision_points": [
+          {
+            "condition": "Critical assumptions remain unknown",
+            "evidence_required": [
+              "source metadata"
+            ],
+            "responses": [
+              "inspect the source",
+              "leave the join unresolved"
+            ]
+          }
+        ],
+        "exit": {
+          "results": [
+            "supported combination or unresolved requirements"
+          ],
+          "required_reports": [
+            "transformations and limitations"
+          ]
+        },
+        "abstention_conditions": [
+          "No evidence supports a necessary transformation"
+        ],
+        "relations": [],
+        "evaluation_questions": [
+          {
+            "kind": "function",
+            "question": "Does the check establish compatible inputs?"
+          }
+        ]
+      }
+    },
+    true
+  ],
+  [
+    "Occurrence",
+    {
+      "definition": {
+        "id": "definition",
+        "version": "2"
+      },
+      "execution": "donor",
+      "event_refs": [
+        "input",
+        "check"
+      ],
+      "artifacts": [],
+      "frontier": {
+        "donor/worker": "2"
+      },
+      "recognition": "supported",
+      "obligations": [],
+      "assumptions": [
+        "Interpretation requires review"
+      ],
+      "operator": "discovery@1",
+      "grounding": {
+        "role_bindings": [
+          {
+            "role": "input",
+            "event_refs": [
+              "input"
+            ]
+          },
+          {
+            "role": "verification",
+            "event_refs": [
+              "check"
+            ]
+          }
+        ],
+        "incoming_context_refs": [],
+        "dependency_evidence": [
+          {
+            "source_event_ref": "input",
+            "target_event_ref": "check",
+            "basis": "source_reported",
+            "evidence_refs": [
+              "check"
+            ],
+            "explanation": "The source declared the dependency"
+          }
+        ],
+        "local_outcome": {
+          "state": "satisfied",
+          "evidence_refs": [
+            "check"
+          ],
+          "limitations": [
+            "Global outcome is separate"
+          ]
+        },
+        "annotator": {
+          "run_id": "curator",
+          "operator": "discovery@1"
+        },
+        "recognition_visibility": "retrospective"
+      }
+    },
+    true
+  ],
+  [
+    "Discovery",
+    {
+      "corpus": {
+        "id": "test-corpus",
+        "version": "1"
+      },
+      "source_windows": [
+        {
+          "execution": "donor",
+          "event_refs": [
+            "input",
+            "check"
+          ],
+          "frontier": {
+            "donor/worker": "2"
+          }
+        }
+      ],
+      "hypotheses": [
+        {
+          "claim": "The worker establishes compatibility before joining",
+          "entry_boundary": "Contributions are available",
+          "exit_boundary": "Compatibility is checked",
+          "conditions": [
+            "A join is pending"
+          ],
+          "support_refs": [
+            "check"
+          ],
+          "contradiction_refs": [],
+          "alternatives": [
+            {
+              "claim": "The check could be redundant",
+              "evidence_refs": [
+                "input"
+              ]
+            }
+          ],
+          "decision": "propose_definition",
+          "uncertainty": "No transfer claim is established"
+        }
+      ],
+      "definition_refs": [
+        {
+          "id": "definition",
+          "version": "2"
+        }
+      ],
+      "occurrence_refs": [],
+      "decision": "supported",
+      "open_questions": [
+        "Does the behavior transfer?"
+      ],
+      "run_refs": [
+        "curator"
+      ]
+    },
+    true
+  ],
+  [
+    "Definition",
+    {
+      "name": "test-function",
+      "version": "2",
+      "intent": "Establish the conditions for combining contributions",
+      "applicability": "A pending join",
+      "recognition_instructions": "Inspect conditions and cited outcomes",
+      "obligations": [
+        "Compatibility is supported"
+      ],
+      "positive_examples": [],
+      "counterexamples": [],
+      "checks": []
+    },
+    true
+  ],
+  [
+    "FunctionalContract",
+    {
+      "entry": {
+        "inputs": [
+          "contributions"
+        ],
+        "unresolved_state": [
+          "compatibility"
+        ],
+        "prerequisites": [],
+        "not_assumed": [
+          "matching labels prove compatibility"
+        ]
+      },
+      "roles": [],
+      "decision_points": [
+        {
+          "condition": "Critical assumptions remain unknown",
+          "evidence_required": [
+            "source metadata"
+          ],
+          "responses": [
+            "inspect the source",
+            "leave the join unresolved"
+          ]
+        }
+      ],
+      "exit": {
+        "results": [
+          "supported combination or unresolved requirements"
+        ],
+        "required_reports": [
+          "transformations and limitations"
+        ]
+      },
+      "abstention_conditions": [
+        "No evidence supports a necessary transformation"
+      ],
+      "relations": [],
+      "evaluation_questions": [
+        {
+          "kind": "function",
+          "question": "Does the check establish compatible inputs?"
+        }
+      ]
+    },
+    false
+  ],
+  [
+    "MotifDependencyEvidence",
+    {
+      "source_event_ref": "input",
+      "target_event_ref": "check",
+      "basis": "verified_causality",
+      "evidence_refs": [
+        "check"
+      ],
+      "explanation": "The source declared the dependency"
+    },
+    false
+  ],
+  [
+    "Discovery",
+    {
+      "corpus": {
+        "id": "test-corpus",
+        "version": "1"
+      },
+      "source_windows": [
+        {
+          "execution": "donor",
+          "event_refs": [
+            "input",
+            "check"
+          ],
+          "frontier": {
+            "donor/worker": "2"
+          }
+        }
+      ],
+      "hypotheses": [
+        {
+          "claim": "The worker establishes compatibility before joining",
+          "entry_boundary": "Contributions are available",
+          "exit_boundary": "Compatibility is checked",
+          "conditions": [
+            "A join is pending"
+          ],
+          "support_refs": [
+            "check"
+          ],
+          "contradiction_refs": [],
+          "alternatives": [
+            {
+              "claim": "The check could be redundant",
+              "evidence_refs": [
+                "input"
+              ]
+            }
+          ],
+          "decision": "propose_definition",
+          "uncertainty": "No transfer claim is established"
+        }
+      ],
+      "definition_refs": [
+        {
+          "id": "definition",
+          "version": "2"
+        }
+      ],
+      "occurrence_refs": [],
+      "decision": "admitted",
+      "open_questions": [
+        "Does the behavior transfer?"
+      ],
+      "run_refs": [
+        "curator"
+      ]
+    },
+    false
+  ],
+  [
+    "Discovery",
+    {
+      "corpus": {
+        "id": "test-corpus",
+        "version": "1"
+      },
+      "source_windows": [
+        {
+          "execution": "donor",
+          "event_refs": [
+            "input",
+            "check"
+          ],
+          "frontier": {
+            "donor/worker": "2"
+          }
+        }
+      ],
+      "hypotheses": [],
+      "definition_refs": [],
+      "occurrence_refs": [],
+      "decision": "no_motif",
+      "open_questions": [
+        "Does the behavior transfer?"
+      ],
+      "run_refs": [
+        "curator"
+      ]
+    },
+    true
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [
+        "first"
+      ],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "literal query",
+      "through_cursor": "50"
+    },
+    true
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "literal query",
+      "through_cursor": "50"
+    },
+    false
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [
+        "first",
+        "first"
+      ],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "literal query",
+      "through_cursor": "50"
+    },
+    false
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100"
+      ],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "literal query",
+      "through_cursor": "50"
+    },
+    false
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [
+        "first"
+      ],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "literal query",
+      "through_cursor": "-1"
+    },
+    false
+  ],
+  [
+    "EvidenceRequest",
+    {
+      "cursor": "0",
+      "limit": 10,
+      "event_refs": [
+        "first"
+      ],
+      "neighbors": true,
+      "kind": "check",
+      "artifact": {
+        "path": "report.txt",
+        "version": "v1"
+      },
+      "query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "through_cursor": "50"
+    },
+    false
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "content_available": false
+    },
+    true
+  ],
+  [
+    "ActionReceipt",
+    {
+      "operation_id": "effect-fixture",
+      "run_id": "run",
+      "status": "succeeded",
+      "action": {
+        "operation_id": "effect-fixture",
+        "kind": "check",
+        "tool": "fixture-check"
+      },
+      "before": [],
+      "after": [],
+      "output": "Observed outcome",
+      "side_effects": [],
+      "started_ms": "1",
+      "reconciled": false,
+      "content_available": "false"
+    },
+    false
+  ],
+  [
+    "ContinuationRead",
+    {
+      "kind": "effect",
+      "after": "0",
+      "limit": 20
+    },
+    true
+  ],
+  [
+    "ContinuationRead",
+    {
+      "kind": "effect",
+      "after": "0",
+      "limit": 101
+    },
+    false
+  ],
+  [
+    "ContinuationRead",
+    {
+      "kind": "effect",
+      "after": "0",
+      "limit": 20,
+      "run_id": "other"
+    },
+    false
+  ],
+  [
+    "ContinuationPage",
+    {
+      "kind": "obligation",
+      "references": [
+        {
+          "id": "obligation",
+          "version": "1"
+        }
+      ],
+      "next": "2",
+      "complete": false,
+      "evidence_cursor": "71"
+    },
+    true
   ]
 ]

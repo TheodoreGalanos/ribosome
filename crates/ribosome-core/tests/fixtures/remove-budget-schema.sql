@@ -1,0 +1,26 @@
+-- Historical test construction only; this is not a supported database downgrade.
+DROP TABLE evaluation_sources;
+DROP TABLE protected_exposures;
+ALTER TABLE archive DROP COLUMN evidence;
+DROP TRIGGER record_index_insert;
+DROP TRIGGER record_index_update;
+DROP TRIGGER record_index_delete;
+DROP TABLE record_index_generation;
+DROP TABLE discovery_corpora;
+ALTER TABLE runs DROP COLUMN timings;
+ALTER TABLE permits DROP COLUMN dispatched_ms;
+ALTER TABLE permits DROP COLUMN observed_ms;
+DROP TABLE run_waits;
+ALTER TABLE work DROP COLUMN source_ref;
+DROP INDEX permit_call;
+DROP INDEX permit_allocation;
+DROP INDEX effect_allocation;
+DROP INDEX work_allocation;
+DROP TABLE run_allocations;
+ALTER TABLE permits DROP COLUMN allocation_id;
+ALTER TABLE permits DROP COLUMN call_id;
+ALTER TABLE permits DROP COLUMN request;
+ALTER TABLE permits DROP COLUMN state;
+ALTER TABLE effects DROP COLUMN allocation_id;
+ALTER TABLE work DROP COLUMN allocation_id;
+DROP TABLE budget_allocations;

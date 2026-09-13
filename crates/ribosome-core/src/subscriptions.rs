@@ -98,6 +98,12 @@ impl Store {
         let page = self.evidence(
             &grant,
             &EvidenceRequest {
+                event_refs: None,
+                neighbors: None,
+                kind: None,
+                artifact: None,
+                query: None,
+                through_cursor: None,
                 cursor: cursor.clone(),
                 limit: 100,
                 run_id: source_run,

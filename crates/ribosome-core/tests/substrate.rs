@@ -608,6 +608,8 @@ fn checked_application_enforces_host_checks_and_preserves_live_dependency_versio
             reads: vec!["report.txt".into(), "source.txt".into()],
             validates: vec!["report.txt".into()],
             writes: vec![],
+            code_files: vec![],
+            validated_properties: vec![],
         },
     );
     let (d, r, g) = fixture_with_tools("apply", tools);

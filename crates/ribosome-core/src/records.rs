@@ -96,6 +96,8 @@ impl Store {
                 self.require_reference(&lineage_grant, &reference)?;
             }
         }
+        self.validate_motif_submission(&lineage_grant, submission, run_id)?;
+        self.validate_transplant(&lineage_grant, submission)?;
         let now = now_ms().to_string();
         let mut record = RecordEnvelope {
             schema_version: "1".into(),
@@ -111,6 +113,11 @@ impl Store {
         };
         if let Some(record_id) = &submission.id {
             let old = self.record(grant, record_id)?;
+            if old.scope != grant.scope {
+                return Err(Error::denied(
+                    "delivered prepared records are read-only; save a recipient-owned derivative",
+                ));
+            }
             if old.kind != submission.kind
                 || submission.expected_version.as_ref() != Some(&old.version)
             {
@@ -120,6 +127,7 @@ impl Store {
                 old.kind,
                 RecordKind::Implementation
                     | RecordKind::Definition
+                    | RecordKind::Discovery
                     | RecordKind::Experiment
                     | RecordKind::Evaluation
                     | RecordKind::Admission
@@ -175,6 +183,7 @@ impl Store {
                 params![record.id, serde_json::to_string(&record.body)?],
             )?;
         }
+        crate::sources::record_sources(&tx, record)?;
         if let Some(run_id) = run_id {
             tx.execute("INSERT OR IGNORE INTO attachment_records(run_id,record_id) SELECT ?1,?2 WHERE EXISTS(SELECT 1 FROM attachment_work WHERE work_id=?1)", params![run_id,record.id])?;
         }
@@ -184,11 +193,12 @@ impl Store {
 
     pub fn record(&self, grant: &Grant, id: &str) -> Result<RecordEnvelope> {
         self.expire_memories(grant)?;
+        let effective = self.evaluation_source_grant(grant, "record", id, true)?;
         let body: Option<String> = self
             .db
             .query_row(
                 "SELECT body FROM records WHERE id=?1 AND client=?2 AND project=?3",
-                params![id, grant.scope.client, grant.scope.project],
+                params![id, effective.scope.client, effective.scope.project],
                 |r| r.get(0),
             )
             .optional()?;
@@ -201,122 +211,39 @@ impl Store {
         {
             return Err(Error::missing("record unavailable"));
         }
+        self.require_source(grant, "record", id)?;
         Ok(record)
     }
 
     pub fn require_reference(&self, grant: &Grant, id: &str) -> Result<()> {
         self.expire_memories(grant)?;
-        let mut pending = vec![id.to_owned()];
-        let mut visited = std::collections::HashSet::new();
-        while let Some(reference) = pending.pop() {
-            if !visited.insert(reference.clone()) {
-                continue;
-            }
-            if visited.len() > 1000 {
-                return Err(Error::exhausted(
-                    "source lineage exceeds the local reference bound",
-                ));
-            }
-            let record: Option<String> = self
-                .db
-                .query_row(
-                    "SELECT body FROM records WHERE id=?1 AND client=?2 AND project=?3",
-                    params![reference, grant.scope.client, grant.scope.project],
-                    |r| r.get(0),
-                )
-                .optional()?;
-            if let Some(body) = record {
-                let record: RecordEnvelope = serde_json::from_str(&body)?;
-                if record.retired
-                    || expired(&record)?
-                    || !grant.visible_splits.contains(&record.provenance.split)
-                {
-                    return Err(Error::denied(format!(
-                        "source reference {id:?} is absent or inaccessible"
-                    )));
-                }
-                pending.extend(record.provenance.source_refs);
-                continue;
-            }
-            let event: Option<String> = self
-                .db
-                .query_row(
-                    "SELECT body FROM events WHERE id=?1 AND client=?2 AND project=?3",
-                    params![reference, grant.scope.client, grant.scope.project],
-                    |r| r.get(0),
-                )
-                .optional()?;
-            if let Some(body) = event {
-                let event: Event = serde_json::from_str(&body)?;
-                if !grant.visible_splits.contains(&event.provenance.split) {
-                    return Err(Error::denied(format!(
-                        "source reference {id:?} is absent or inaccessible"
-                    )));
-                }
-                pending.extend(event.provenance.source_refs);
-                continue;
-            }
-            return Err(Error::denied(format!(
-                "source reference {id:?} is absent or inaccessible"
-            )));
-        }
-        Ok(())
-    }
-
-    pub fn search(&self, grant: &Grant, request: &SearchRequest) -> Result<RecordPage> {
-        self.expire_memories(grant)?;
-        validate("SearchRequest", &serde_json::to_value(request)?)?;
-        // Quote tokens as literals: user/model text is never FTS query syntax.
-        let query = request
-            .query
-            .split_whitespace()
-            .map(|s| format!("\"{}\"", s.replace('"', "\"\"")))
-            .collect::<Vec<_>>()
-            .join(" AND ");
-        let kind = request
-            .kind
-            .as_ref()
-            .map(serde_json::to_value)
-            .transpose()?
-            .and_then(|v| v.as_str().map(str::to_owned));
-        let mut stmt=self.db.prepare("SELECT body FROM records WHERE client=?1 AND project=?2 AND (?3 IS NULL OR kind=?3) AND (?4='' OR id IN (SELECT id FROM record_search WHERE record_search MATCH ?4)) ORDER BY id")?;
-        let rows = stmt.query_map(
-            params![grant.scope.client, grant.scope.project, kind, query],
-            |r| r.get::<_, String>(0),
+        let is_record: bool = self.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM records WHERE id=?1)",
+            [id],
+            |r| r.get(0),
         )?;
-        let mut records = Vec::new();
-        let mut skipped = 0;
-        let mut bytes = 0;
-        for row in rows {
-            let body = row?;
-            let r: RecordEnvelope = serde_json::from_str(&body)?;
-            if r.retired || expired(&r)? || !grant.visible_splits.contains(&r.provenance.split) {
-                continue;
-            }
-            if request.inventory == SearchRequestInventory::Usable
-                && (r.kind != RecordKind::Implementation || !self.is_admitted(grant, &r)?)
-            {
-                continue;
-            }
-            if skipped < request.offset {
-                skipped += 1;
-                continue;
-            }
-            if bytes + body.len() > crate::validation::MAX_FRAME / 2
-                || records.len() >= request.limit as usize
-            {
-                break;
-            }
-            bytes += body.len();
-            records.push(r);
-        }
-        Ok(RecordPage {
-            next_offset: request.offset + records.len() as u32,
-            records,
-        })
+        let is_artifact: bool = self.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM artifact_snapshots WHERE id=?1)",
+            [id],
+            |r| r.get(0),
+        )?;
+        self.require_source(
+            grant,
+            if is_record {
+                "record"
+            } else if is_artifact {
+                "artifact"
+            } else {
+                "event"
+            },
+            id,
+        )
     }
 
     pub fn is_admitted(&self, grant: &Grant, implementation: &RecordEnvelope) -> Result<bool> {
+        if !self.source_available(grant, "record", &implementation.id)? {
+            return Ok(false);
+        }
         let imp: Implementation =
             serde_json::from_value(Value::Object(implementation.body.clone()))?;
         if !imp
@@ -337,6 +264,9 @@ impl Store {
             if r.retired || !grant.visible_splits.contains(&r.provenance.split) {
                 continue;
             }
+            if !self.source_available(grant, "record", &r.id)? {
+                continue;
+            }
             let a: Admission = serde_json::from_value(Value::Object(r.body))?;
             if a.implementation.id == implementation.id
                 && a.implementation.version == imp.version
@@ -349,12 +279,31 @@ impl Store {
     }
 
     pub fn retire(&self, grant: &Grant, request: &RetireRequest) -> Result<()> {
-        let mut record = self.record(grant, &request.id)?;
+        validate("RetireRequest", &serde_json::to_value(request)?)?;
+        // An owner can request physical deletion after retirement or expiry.
+        // This administrative path returns no unavailable record content.
+        let body: Option<String> = self
+            .db
+            .query_row(
+                "SELECT body FROM records WHERE id=?1 AND client=?2 AND project=?3",
+                params![request.id, grant.scope.client, grant.scope.project],
+                |r| r.get(0),
+            )
+            .optional()?;
+        let mut record: RecordEnvelope = serde_json::from_str(
+            &body.ok_or_else(|| Error::missing("record not found in granted scope"))?,
+        )?;
+        if !grant.visible_splits.contains(&record.provenance.split) {
+            return Err(Error::denied("record unavailable"));
+        }
         if record.version != request.expected_version {
             return Err(Error::conflict("record version mismatch"));
         }
         if matches!(record.kind, RecordKind::Admission | RecordKind::Evaluation) {
             return Err(Error::denied("protected record"));
+        }
+        if record.retired && (!request.delete || record.body.is_empty()) {
+            return self.cleanup_sources(grant, 1);
         }
         record.retired = true;
         record.updated_ms = now_ms().to_string();
@@ -364,69 +313,11 @@ impl Store {
             record.provenance.source_refs.clear();
         }
         self.save_record(&record, Some(&request.expected_version))?;
-        self.invalidate_derived(grant, &record.id, request.delete)?;
+        self.cleanup_sources(grant, 1)?;
         Ok(())
     }
 
-    fn invalidate_derived(&self, grant: &Grant, source: &str, delete: bool) -> Result<()> {
-        let mut pending = vec![source.to_owned()];
-        let mut visited = std::collections::HashSet::new();
-        while let Some(source) = pending.pop() {
-            if !visited.insert(source.clone()) {
-                continue;
-            }
-            self.db
-                .execute("DELETE FROM archive WHERE implementation_id=?1", [&source])?;
-            let mut activity = self
-                .db
-                .prepare("SELECT id,body FROM events WHERE client=?1 AND project=?2")?;
-            for row in activity
-                .query_map(params![grant.scope.client, grant.scope.project], |r| {
-                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-                })?
-            {
-                let (id, body) = row?;
-                let event: Event = serde_json::from_str(&body)?;
-                if event.provenance.source_refs.contains(&source) {
-                    pending.push(id);
-                }
-            }
-            let mut stmt = self
-                .db
-                .prepare("SELECT body FROM records WHERE client=?1 AND project=?2")?;
-            let rows = stmt
-                .query_map(params![grant.scope.client, grant.scope.project], |r| {
-                    r.get::<_, String>(0)
-                })?
-                .collect::<std::result::Result<Vec<_>, _>>()?;
-            for row in rows {
-                let mut record: RecordEnvelope = serde_json::from_str(&row)?;
-                if record.retired {
-                    continue;
-                }
-                let mut references = record.provenance.source_refs.clone();
-                crate::exports::collect_references(
-                    &Value::Object(record.body.clone()),
-                    &mut references,
-                );
-                if references.contains(&source) {
-                    let expected = record.version.clone();
-                    record.version = (counter(&expected)? + 1).to_string();
-                    record.retired = true;
-                    record.updated_ms = now_ms().to_string();
-                    if delete {
-                        record.body.clear();
-                        record.provenance.source_refs.clear();
-                    }
-                    self.save_record(&record, Some(&expected))?;
-                    pending.push(record.id);
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn expire_memories(&self, grant: &Grant) -> Result<()> {
+    pub(crate) fn expire_memories(&self, grant: &Grant) -> Result<()> {
         let mut statement = self
             .db
             .prepare("SELECT body FROM records WHERE client=?1 AND project=?2 AND kind='memory'")?;
@@ -443,14 +334,14 @@ impl Store {
                 record.retired = true;
                 record.updated_ms = now_ms().to_string();
                 self.save_record(&record, Some(&expected))?;
-                self.invalidate_derived(grant, &record.id, false)?;
+                self.cleanup_sources(grant, 1)?;
             }
         }
         Ok(())
     }
 }
 
-fn expired(record: &RecordEnvelope) -> Result<bool> {
+pub(crate) fn expired(record: &RecordEnvelope) -> Result<bool> {
     Ok(record.kind == RecordKind::Memory
         && record
             .body

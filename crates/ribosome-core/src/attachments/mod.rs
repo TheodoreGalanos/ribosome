@@ -349,7 +349,7 @@ impl Store {
             Ok(self.db.query_row("SELECT count(*) FROM work w JOIN attachment_work aw ON aw.work_id=w.id WHERE aw.attachment_id=?1 AND w.status IN (SELECT value FROM json_each(?2))",params![id,states], |r|r.get(0))?)
         };
         let pending: u32 = self.db.query_row("SELECT count(*) FROM attachment_feedback WHERE attachment_id=?1 AND json_extract(body,'$.state') IN ('pending','delivered')",[id], |r|r.get(0))?;
-        let usage: String = self.db.query_row("SELECT json_object('calls',count(*),'unknown_calls',coalesce(sum(CASE WHEN usage IS NULL OR json_extract(usage,'$.complete')<>1 THEN 1 ELSE 0 END),0),'observed_cost_microusd',CAST(coalesce(sum(CAST(json_extract(usage,'$.cost_microusd') AS INTEGER)),0) AS TEXT)) FROM permits WHERE grant_id=?1",[&a.grant_id], |r|r.get(0))?;
+        let usage: String = self.db.query_row("SELECT json_object('calls',count(*),'unknown_calls',coalesce(sum(CASE WHEN usage IS NULL OR json_extract(usage,'$.complete')<>1 THEN 1 ELSE 0 END),0),'observed_cost_microusd',CAST(coalesce(sum(CAST(json_extract(usage,'$.cost_microusd') AS INTEGER)),0) AS TEXT)) FROM permits WHERE grant_id=?1 AND state!='released'",[&a.grant_id], |r|r.get(0))?;
         let feedback_states: String = self.db.query_row("SELECT coalesce(json_group_object(state,total),'{}') FROM (SELECT json_extract(body,'$.state') state,count(*) total FROM attachment_feedback WHERE attachment_id=?1 GROUP BY state)",[id], |r|r.get(0))?;
         Ok(AttachmentStatus {
             attachment: a,

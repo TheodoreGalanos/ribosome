@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
+import { DatabaseSync } from 'node:sqlite';
 import { AttachmentClient, WriteCoordinator } from '@ribosome/agents/attachments';
 
 function config(workspace) {
@@ -52,13 +53,13 @@ async function until(predicate, timeout = 15000) {
   while (Date.now() < deadline) { const value = await predicate(); if (value) return value; await new Promise(resolve => setTimeout(resolve, 25)); }
   throw new Error('Timed out awaiting attachment condition');
 }
-async function fixture(change = () => {}) {
+async function fixture(change = () => {}, onDiagnostic) {
   const directory = await mkdtemp(join(tmpdir(), 'ribosome-attachment-'));
   const settings = config(directory); change(settings);
   await writeFile(join(directory, 'report.txt'), 'original');
   await writeFile(join(directory, 'independent.txt'), 'preserve me');
   const file = join(directory, 'host.json'); await writeFile(file, JSON.stringify(settings));
-  const client = await AttachmentClient.start({ executable: (process.env.RIBOSOME_TEST_CLI ?? resolve('target/debug/ribosome')), config: file });
+  const client = await AttachmentClient.start({ executable: (process.env.RIBOSOME_TEST_CLI ?? resolve('target/debug/ribosome')), config: file, onDiagnostic });
   return { directory, settings, file, client, async close() { try { await client.close(); } finally { await rm(directory, { recursive: true, force: true }); } } };
 }
 const open = (id = 'attachment') => ({ id, execution_id: `execution-${id}`, connector: 'custom', connector_version: '1', start: 'now', capabilities: ['observe'] });
@@ -111,6 +112,30 @@ test('feedback becomes stale when its artifact changes before delivery', async (
     assert.deepEqual((await f.client.peer.call('attachment.feedback', { attachment_id: 'attachment' })).items, []);
     assert.equal((await f.client.peer.call('attachment.status', { attachment_id: 'attachment' })).pending_feedback, 0);
   } finally { await f.close(); }
+});
+
+test('Pi feedback inherits artifact access and deletion removes its copied summary', async () => {
+  const diagnostics = [];
+  const f = await fixture(c => { c.request.prompt = 'feedback-source'; }, text => diagnostics.push(text));
+  try {
+    const marker = 'WITHDRAWN-ATTACHMENT-SOURCE';
+    await writeFile(join(f.directory, 'report.txt'), marker);
+    await f.client.peer.call('attachment.open', open());
+    await f.client.peer.call('attachment.events', { attachment_id: 'attachment', events: [event(1, { artifacts: [] })] });
+    await until(async () => (await f.client.peer.call('attachment.status', { attachment_id: 'attachment' })).pending_feedback === 1);
+    const first = (await f.client.peer.call('attachment.feedback', { attachment_id: 'attachment' })).items[0];
+    assert.ok(first.summary.includes(marker));
+    assert.deepEqual(first.record_refs, []);
+    assert.deepEqual(first.artifact_versions, []);
+    await rm(join(f.directory, 'report.txt'));
+    assert.deepEqual((await f.client.peer.call('attachment.feedback', { attachment_id: 'attachment' })).items, []);
+    const db = new DatabaseSync(join(f.directory, '.ribosome', 'ribosome.db'));
+    try {
+      const row = db.prepare('SELECT body FROM attachment_feedback WHERE id=?').get(first.id);
+      assert.ok(!row.body.includes(marker), 'delivery rewrote a deleted summary into durable feedback');
+    } finally { db.close(); }
+  } catch (error) { throw new Error(`${error.message}\n${diagnostics.join('')}`, { cause: error }); }
+  finally { await f.close(); }
 });
 
 test('advisory feedback survives host loss and is redelivered under its original ID', async () => {
@@ -211,28 +236,46 @@ for (const mode of ['unavailable-check', 'uncooperative-writer']) test(`repair p
   } finally { await f.close(); }
 });
 
-test('a worker lost after application keeps the writer stopped until receipt reconciliation', async () => {
+for (const lostOutcome of [false, true]) test(`a worker lost after application keeps the writer stopped until ${lostOutcome ? 'explicit host settlement' : 'receipt reconciliation'}`, async t => {
   const f = await fixture(c => {
     c.grant.mode = 'apply'; c.grant.paths.push('independent.txt'); c.grant.writable_paths = ['report.txt'];
     c.grant.tools = ['report-check']; c.grant.required_checks = ['report-check']; c.attachment = { allow_coordinated_writes: true };
     c.request.prompt = 'crash-after-apply';
     c.tools = { 'report-check': { program: process.execPath, args: ['-e', "if(require('fs').readFileSync('report.txt','utf8')!=='corrected')process.exit(1)"], timeout_ms: 2000, reads: ['report.txt'], validates: ['report.txt'], writes: [] } };
   });
-  try {
+  t.after(() => f.close());
+  {
     const options = { id: 'lost-repair', executionId: 'recover-writer', coordinatedWrites: true, onFeedback: () => {} };
     const a = await f.client.attach(options);
     await a.publish(event()); await a.finish();
     const coordinator = new WriteCoordinator();
-    await assert.rejects(a.repair(coordinator), /active|interrupted|Worker|worker|Repair/);
+    if (lostOutcome) {
+      const db = new DatabaseSync(join(f.directory, '.ribosome/ribosome.db'));
+      db.exec("CREATE TRIGGER lose_apply_outcome BEFORE UPDATE OF observation ON effects WHEN json_extract(NEW.body,'$.action.kind')='apply' BEGIN SELECT RAISE(FAIL,'injected application outcome loss'); END");
+      db.close();
+    }
+    await assert.rejects(a.repair(coordinator), lostOutcome ? /injected application outcome loss/ : /active|interrupted|Worker|worker|Repair/);
     assert.equal(await readFile(join(f.directory, 'report.txt'), 'utf8'), 'corrected');
-    const status = await a.status(); assert.equal(status.attachment.handoff.state, 'unknown');
+    const status = await a.status(); assert.equal(status.attachment.handoff.state, lostOutcome ? 'held' : 'unknown');
     await assert.rejects(coordinator.run(async () => 'must stay stopped'));
     const restored = await f.client.attach(options);
+    if (lostOutcome) {
+      const db = new DatabaseSync(join(f.directory, '.ribosome/ribosome.db'));
+      db.exec('DROP TRIGGER lose_apply_outcome');
+      const { id } = db.prepare("SELECT id FROM effects WHERE run_id=? AND json_extract(body,'$.action.kind')='apply'").get(status.attachment.handoff.work_id);
+      db.close();
+      await assert.rejects(restored.reconcileRepair(coordinator, status.attachment.handoff.generation), /unknown effects/);
+      const view = await f.client.inspectEffect(id);
+      await f.client.settleEffect({ operation_id: id, expected_receipt_version: view.receipt_version, executor_stopped: true, workspace_versions: view.workspace_versions, reason: 'The maintenance executor exited; its current output needs fresh validation.', source_refs: [] });
+    }
     await restored.reconcileRepair(coordinator, status.attachment.handoff.generation);
     await restored.finish();
     assert.equal(await coordinator.run(async () => readFile(join(f.directory, 'report.txt'), 'utf8')), 'corrected');
     const inspected = spawnSync((process.env.RIBOSOME_TEST_CLI ?? resolve('target/debug/ribosome')), ['inspect', join(f.directory, '.ribosome/ribosome.db'), status.attachment.handoff.work_id], { encoding: 'utf8' });
     assert.equal(inspected.status, 0, inspected.stderr);
-    assert.equal(JSON.parse(inspected.stdout).effects.filter(e => e.action.kind === 'apply' && e.status === 'succeeded').length, 1);
-  } finally { await f.close(); }
+    const application = JSON.parse(inspected.stdout).effects.filter(e => e.action.kind === 'apply');
+    assert.equal(application.length, 1);
+    assert.equal(application[0].status, lostOutcome ? 'unknown' : 'succeeded');
+    if (lostOutcome) assert.ok(application[0].settlement);
+  }
 });

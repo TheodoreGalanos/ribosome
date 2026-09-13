@@ -5,7 +5,7 @@ export type Origin = "observed" | "reexecuted" | "synthetic";
 export type Split = "development" | "evaluation" | "holdout";
 export type EffectStatus = "started" | "succeeded" | "failed" | "unknown" | "denied" | "stale";
 export type Disposition = "completed" | "abstained" | "failed" | "cancelled" | "exhausted" | "interrupted";
-export type RecordKind = "definition" | "occurrence" | "implementation" | "finding" | "intervention" | "memory" | "experiment" | "recommendation" | "admission" | "evaluation" | "regulation" | "transplant" | "obligation";
+export type RecordKind = "definition" | "occurrence" | "implementation" | "finding" | "intervention" | "memory" | "experiment" | "recommendation" | "admission" | "evaluation" | "regulation" | "transplant" | "obligation" | "discovery";
 export type MemoryKind = "working" | "episodic" | "aggregated" | "procedural" | "failure";
 export type Recognition = "tentative" | "supported" | "rejected";
 export type ObligationState = "open" | "satisfied" | "violated" | "unknown";
@@ -52,6 +52,8 @@ export interface Grant {
   allow_export: boolean;
   required_checks?: Array<string>;
   writable_paths?: Array<string>;
+  discovery_corpus?: VersionRef;
+  prepared_run?: string;
 }
 export interface Event {
   id: string;
@@ -83,6 +85,7 @@ export interface Definition {
   positive_examples: Array<string>;
   counterexamples: Array<string>;
   checks: Array<string>;
+  functional_contract?: FunctionalContract;
 }
 export interface ObligationResult {
   obligation: string;
@@ -99,6 +102,7 @@ export interface Occurrence {
   obligations: Array<ObligationResult>;
   assumptions: Array<string>;
   operator: string;
+  grounding?: OccurrenceGrounding;
 }
 export interface Implementation {
   name: string;
@@ -112,6 +116,8 @@ export interface Implementation {
   possible_effects: Array<string>;
   failure_behavior: string;
   evaluation_refs: Array<string>;
+  instruction_contract?: InstructionContract;
+  function?: string;
 }
 export interface Finding {
   subject: string;
@@ -168,6 +174,8 @@ export interface Experiment {
   selection_frozen: boolean;
   variants: Array<Variant>;
   development_cases?: Array<DevelopmentCase>;
+  study_objective?: "function" | "system_benefit";
+  learning_cost?: LearningCost;
 }
 export interface Measurement {
   name: string;
@@ -190,6 +198,10 @@ export interface Evaluation {
   output: string;
   artifact_refs: Array<ArtifactRef>;
   descriptor?: string;
+  allocation_id?: string;
+  execution_status?: "completed" | "failed" | "cancelled" | "exhausted" | "not_started";
+  usage_complete?: boolean;
+  run_refs?: Array<string>;
 }
 export interface Recommendation {
   implementation: VersionRef;
@@ -224,6 +236,9 @@ export interface Transplant {
   incompatibilities: Array<string>;
   checks: Array<string>;
   fallback: string;
+  invocation_run?: string;
+  recipient_entry_refs?: Array<string>;
+  result_refs?: Array<string>;
 }
 export interface Obligation {
   description: string;
@@ -279,9 +294,15 @@ export interface ActionReceipt {
   elapsed_ms?: string;
   reconciled: boolean;
   evidence_ref?: string;
+  outcome_basis?: EffectOutcomeBasis;
+  validations?: Array<ValidationEvidence>;
+  restored_validity?: Array<ArtifactRef>;
+  restored_properties?: Array<ValidatedProperty>;
+  settlement?: EffectSettlement;
+  content_available?: boolean;
 }
 export interface Checkpoint {
-  format: "pi-0.85.1/1";
+  format: string;
   profile: Profile;
   operator: string;
   provider: string;
@@ -289,6 +310,7 @@ export interface Checkpoint {
   messages: Array<Record<string, unknown>>;
   pending_operations: Array<string>;
   event_cursor: string;
+  context?: ContextState;
 }
 export interface AgentRunRequest {
   run_id: string;
@@ -298,6 +320,9 @@ export interface AgentRunRequest {
   provider: string;
   model: string;
   checkpoint?: Checkpoint;
+  parent_allocation_id?: string;
+  discovery_corpus?: VersionRef;
+  invocation?: ImplementationInvocation;
 }
 export interface AgentResult {
   disposition: Disposition;
@@ -322,6 +347,12 @@ export interface EvidenceRequest {
   cursor: string;
   limit: number;
   run_id?: string;
+  event_refs?: Array<string>;
+  neighbors?: boolean;
+  kind?: string;
+  artifact?: ArtifactRef;
+  query?: string;
+  through_cursor?: string;
 }
 export interface EvidencePage {
   events: Array<Event>;
@@ -336,16 +367,25 @@ export interface SearchRequest {
   inventory: "evidence" | "usable";
   limit: number;
   offset: number;
+  query_mode?: "all_terms" | "any_terms";
+  order?: "id" | "relevance";
+  eligible?: boolean;
+  function?: string;
+  after?: string;
 }
 export interface RecordPage {
   records: Array<RecordEnvelope>;
   next_offset: number;
+  next?: string;
+  complete?: boolean;
 }
 export interface ArtifactRead {
   path: string;
   offset: number;
   length: number;
   branch_id?: string;
+  snapshot_id?: string;
+  required_freshness?: Freshness;
 }
 export interface ArtifactChunk {
   artifact: ArtifactRef;
@@ -353,6 +393,8 @@ export interface ArtifactChunk {
   offset: number;
   total_bytes: string;
   eof: boolean;
+  snapshot_id?: string;
+  required_freshness?: Freshness;
 }
 export interface WorkRequest {
   subject: string;
@@ -372,7 +414,7 @@ export interface WorkItem {
   root_id: string;
   parent_id: string;
   depth: number;
-  status: "queued" | "running" | "completed" | "failed" | "cancelled" | "exhausted" | "interrupted";
+  status: WorkItemStatus;
   attempts: number;
   lease_until_ms: string;
   owner: string;
@@ -405,6 +447,8 @@ export interface PermitRequest {
   max_output_tokens: number;
   input_tokens_bound: string;
   cost_microusd_bound: string;
+  compaction_id?: string;
+  call_id?: string;
 }
 export interface Permit {
   id: string;
@@ -424,6 +468,11 @@ export interface ExperimentResult {
   evaluation_refs: Array<string>;
   decision: AdmissionDecision;
   summary: string;
+  allocation_id?: string;
+  complete?: boolean;
+  planned_evaluations?: number;
+  usage_complete?: boolean;
+  report?: Record<string, unknown>;
 }
 export interface AdmissionRequest {
   recommendation_id: string;
@@ -435,6 +484,7 @@ export interface ExportRequest {
 export interface ExportResult {
   path: string;
   count: number;
+  artifact: ArtifactRef;
 }
 export interface Variant {
   arm: string;
@@ -450,6 +500,8 @@ export interface EvaluationTask {
   memory_namespace: string;
   budget: Budget;
   memory_start: Array<RecordEnvelope>;
+  allocation_id: string;
+  implementation_ref?: VersionRef;
 }
 export interface EvaluationObservation {
   measurements: Array<Measurement>;
@@ -465,6 +517,10 @@ export interface ArchiveCell {
   implementation: RecordEnvelope;
   quality: number;
   evaluation_id: string;
+  admission_ref?: string;
+  evaluation_refs?: Array<string>;
+  implementation_version?: string;
+  limitations?: Array<string>;
 }
 export interface ArchivePage {
   cells: Array<ArchiveCell>;
@@ -601,6 +657,339 @@ export interface AttachmentRelease {
   attachment_id: string;
   generation: string;
 }
+export interface ContextSource {
+  kind: "record" | "event" | "artifact";
+  id: string;
+  version: string;
+}
+export interface ContextState {
+  segment_id: string;
+  count: string;
+  generation: string;
+  rebuilt: boolean;
+  tail_after: string;
+  summary_ref?: string;
+  summary_through?: string;
+}
+export interface ContextEntry {
+  message: Record<string, unknown>;
+  sources: Array<ContextSource>;
+}
+export interface ContextAppend {
+  segment_id: string;
+  after: string;
+  entries: Array<ContextEntry>;
+}
+export interface ContextRead {
+  segment_id: string;
+  after: string;
+  limit: number;
+}
+export interface ContextPage {
+  messages: Array<Record<string, unknown>>;
+  next: string;
+  complete: boolean;
+}
+export type Freshness = "current" | "historical";
+export interface CompactionPlan {
+  id: string;
+  segment_id: string;
+  after: string;
+  through: string;
+}
+export interface CompactionPreparation {
+  plan?: CompactionPlan;
+}
+export interface ContextSummary {
+  id: string;
+  through: string;
+  text: string;
+  sources: Array<ContextSource>;
+}
+export interface CompactionInput {
+  plan: CompactionPlan;
+  owner_task: string;
+  previous_summary?: ContextSummary;
+  messages: Array<Record<string, unknown>>;
+}
+export interface CompactionCommit {
+  id: string;
+  text: string;
+  permit_id: string;
+}
+export interface ToolCall {
+  call_id: string;
+  method: "evidence.read" | "search.query" | "record.read" | "artifact.read" | "action.execute" | "action.lookup" | "record.submit" | "record.retire" | "work.request" | "message.send" | "message.inbox" | "message.ack" | "experiment.run" | "inventory.admission_request" | "inventory.archive" | "training.export" | "artifact.validity" | "work.wait" | "work.status" | "evidence.corpus" | "continuation.read";
+  arguments: Record<string, unknown>;
+}
+export interface ToolObservation {
+  content: string;
+  artifact: ArtifactRef;
+  sources: Array<ContextSource>;
+  total_bytes: string;
+  cursor?: string;
+}
+export type EffectOutcomeBasis = "execution_established" | "current_postcondition_observed" | "unresolved" | "not_dispatched";
+export interface ValidationEvidence {
+  check_ref: string;
+  checker_version: string;
+  policy_version: string;
+  authority: string;
+  receipt_ref: string;
+  inputs: Array<ArtifactRef>;
+  targets: Array<ArtifactRef>;
+  outcome: "passed" | "failed" | "stale";
+  branch_id?: string;
+  generation: string;
+  properties?: Array<ValidatedProperty>;
+}
+export interface PropertyBinding {
+  obligation: VersionRef;
+  path: string;
+}
+export interface ValidatedProperty {
+  obligation: VersionRef;
+  artifact: ArtifactRef;
+}
+export interface PropertyAssessment {
+  obligation: VersionRef;
+  state: "unproven" | "validated" | "stale";
+  evidence_refs: Array<string>;
+}
+export interface ArtifactValidityRequest {
+  path: string;
+}
+export interface ArtifactValidity {
+  artifact: ArtifactRef;
+  snapshot_id: string;
+  observed_ms: string;
+  generation: string;
+  properties: Array<PropertyAssessment>;
+}
+export interface EffectSettlementRequest {
+  operation_id: string;
+  expected_receipt_version: string;
+  executor_stopped: true;
+  workspace_versions: Array<ArtifactRef>;
+  reason: string;
+  source_refs: Array<string>;
+}
+export interface EffectSettlement {
+  request: EffectSettlementRequest;
+  evidence_ref: string;
+  recorded_ms: string;
+}
+export interface EffectInspection {
+  receipt: ActionReceipt;
+  workspace_versions: Array<ArtifactRef>;
+  receipt_version: string;
+}
+export interface BudgetAllocationRequest {
+  id: string;
+  parent_id: string;
+  cause_id: string;
+  purpose: string;
+  budget: Budget;
+}
+export interface BudgetAllocation {
+  id: string;
+  grant_id: string;
+  parent_id?: string;
+  cause_id: string;
+  purpose: string;
+  budget: Budget;
+  disposition?: Disposition;
+}
+export interface BudgetUsage {
+  model_calls: number;
+  undispatched_calls: number;
+  unknown_calls: number;
+  settled_tokens: string;
+  reserved_tokens: string;
+  settled_cost_microusd: string;
+  reserved_cost_microusd: string;
+  actions: number;
+  work_items: number;
+}
+export interface BudgetStatus {
+  allocation: BudgetAllocation;
+  usage: BudgetUsage;
+  remaining: Budget;
+}
+export type WorkItemStatus = "queued" | "running" | "completed" | "failed" | "cancelled" | "exhausted" | "interrupted";
+export interface WorkWaitRequest {
+  work_ids: Array<string>;
+}
+export interface WorkWaitResult {
+  work_ids: Array<string>;
+  wait_required: boolean;
+}
+export interface WorkStatus {
+  work_id: string;
+  status: WorkItemStatus;
+  result_available: boolean;
+  result?: AgentResult;
+  source?: ContextSource;
+}
+export interface SessionParkRequest {
+  work_ids: Array<string>;
+  checkpoint: Checkpoint;
+}
+export interface MotifEntryContract {
+  inputs: Array<string>;
+  unresolved_state: Array<string>;
+  prerequisites: Array<string>;
+  not_assumed: Array<string>;
+}
+export interface MotifRole {
+  name: string;
+  description: string;
+}
+export interface MotifDecisionPoint {
+  condition: string;
+  evidence_required: Array<string>;
+  responses: Array<string>;
+}
+export interface MotifExitContract {
+  results: Array<string>;
+  required_reports: Array<string>;
+}
+export interface DefinitionRelation {
+  kind: "specializes" | "composes" | "replaces";
+  definition: VersionRef;
+  explanation: string;
+}
+export interface MotifEvaluationQuestion {
+  kind: "recognition" | "function" | "causal" | "transfer";
+  question: string;
+}
+export interface FunctionalContract {
+  entry: MotifEntryContract;
+  roles: Array<MotifRole>;
+  decision_points: Array<MotifDecisionPoint>;
+  exit: MotifExitContract;
+  abstention_conditions: Array<string>;
+  relations: Array<DefinitionRelation>;
+  evaluation_questions: Array<MotifEvaluationQuestion>;
+}
+export interface MotifRoleBinding {
+  role: string;
+  event_refs: Array<string>;
+}
+export interface MotifDependencyEvidence {
+  source_event_ref: string;
+  target_event_ref: string;
+  basis: "source_reported" | "inferred";
+  evidence_refs: Array<string>;
+  explanation: string;
+}
+export interface MotifLocalOutcome {
+  state: "satisfied" | "violated" | "unresolved";
+  evidence_refs: Array<string>;
+  limitations: Array<string>;
+}
+export interface MotifAnnotator {
+  run_id: string;
+  operator: string;
+}
+export interface OccurrenceGrounding {
+  role_bindings: Array<MotifRoleBinding>;
+  incoming_context_refs: Array<string>;
+  dependency_evidence: Array<MotifDependencyEvidence>;
+  local_outcome: MotifLocalOutcome;
+  annotator: MotifAnnotator;
+  recognition_visibility: "retrospective" | "online";
+}
+export interface DiscoveryWindow {
+  execution: string;
+  event_refs: Array<string>;
+  frontier: Record<string, unknown>;
+}
+export interface DiscoveryAlternative {
+  claim: string;
+  evidence_refs: Array<string>;
+}
+export interface DiscoveryHypothesis {
+  claim: string;
+  entry_boundary: string;
+  exit_boundary: string;
+  conditions: Array<string>;
+  support_refs: Array<string>;
+  contradiction_refs: Array<string>;
+  alternatives: Array<DiscoveryAlternative>;
+  decision: "propose_definition" | "recognize_existing" | "specialize" | "compose" | "reject" | "inconclusive";
+  uncertainty: string;
+}
+export interface Discovery {
+  work_ref?: string;
+  corpus: VersionRef;
+  source_windows: Array<DiscoveryWindow>;
+  hypotheses: Array<DiscoveryHypothesis>;
+  definition_refs: Array<VersionRef>;
+  occurrence_refs: Array<string>;
+  decision: "supported" | "rejected" | "inconclusive" | "no_motif";
+  open_questions: Array<string>;
+  run_refs: Array<string>;
+}
+export interface DiscoveryCorpus {
+  id: string;
+  version: string;
+  visibility: "retrospective" | "online";
+  source_windows: Array<DiscoveryWindow>;
+  definition_refs: Array<VersionRef>;
+  limitations: Array<string>;
+  artifacts: Array<CorpusArtifact>;
+  dependencies: Array<Dependency>;
+}
+export interface CorpusArtifact {
+  artifact: ArtifactRef;
+  snapshot_id: string;
+}
+export type ContinuationKind = "obligation" | "effect" | "work";
+export interface ContinuationRead {
+  kind: ContinuationKind;
+  after: string;
+  limit: number;
+}
+export interface ContinuationReference {
+  id: string;
+  version?: string;
+}
+export interface ContinuationPage {
+  kind: ContinuationKind;
+  references: Array<ContinuationReference>;
+  next: string;
+  complete: boolean;
+  evidence_cursor: string;
+}
+export interface BindingSlot {
+  name: string;
+  kind: "string" | "number" | "boolean" | "object" | "array" | "artifact_path" | "tool";
+  required: boolean;
+}
+export interface InstructionContract {
+  inputs: Array<BindingSlot>;
+  outputs: Array<string>;
+  entry_obligations: Array<string>;
+  exit_obligations: Array<string>;
+  limitations: Array<string>;
+  discovery_refs: Array<VersionRef>;
+}
+export interface ImplementationInvocation {
+  implementation: VersionRef;
+  bindings: Record<string, unknown>;
+  recipient_refs: Array<string>;
+  purpose: "production" | "experimental";
+}
+export interface InvocationMaterial {
+  invocation: ImplementationInvocation;
+  implementation: Implementation;
+}
+export interface LearningCost {
+  cost_microusd: string;
+  reuse_count: number;
+  complete: boolean;
+}
 export interface RpcMethods {
   "bridge.hello": { input: Handshake; output: Handshake };
   "agent.run": { input: AgentRunRequest; output: AgentResult };
@@ -627,6 +1016,26 @@ export interface RpcMethods {
   "training.export": { input: ExportRequest; output: ExportResult };
   "inventory.archive": { input: Empty; output: ArchivePage };
   "session.events": { input: AgentActivityBatch; output: Ok };
+  "session.context": { input: Empty; output: ContextState };
+  "session.context.append": { input: ContextAppend; output: ContextState };
+  "session.context.read": { input: ContextRead; output: ContextPage };
+  "session.compaction.prepare": { input: Empty; output: CompactionPreparation };
+  "session.compaction.read": { input: IdRequest; output: CompactionInput };
+  "session.compaction.commit": { input: CompactionCommit; output: ContextSummary };
+  "session.summary": { input: IdRequest; output: ContextSummary };
+  "tool.call": { input: ToolCall; output: ToolObservation };
+  "tool.result": { input: IdRequest; output: ToolObservation };
+  "artifact.validity": { input: ArtifactValidityRequest; output: ArtifactValidity };
+  "model.dispatch": { input: IdRequest; output: Ok };
+  "model.release": { input: IdRequest; output: Ok };
+  "budget.status": { input: Empty; output: BudgetStatus };
+  "model.permit.lookup": { input: IdRequest; output: Permit };
+  "work.wait": { input: WorkWaitRequest; output: WorkWaitResult };
+  "work.status": { input: IdRequest; output: WorkStatus };
+  "session.park": { input: SessionParkRequest; output: Ok };
+  "evidence.corpus": { input: Empty; output: DiscoveryCorpus };
+  "continuation.read": { input: ContinuationRead; output: ContinuationPage };
+  "invocation.read": { input: Empty; output: InvocationMaterial };
 }
 export interface HostRpcMethods {
   "host.hello": { input: HostHelloRequest; output: HostHello };
@@ -642,4 +1051,6 @@ export interface HostRpcMethods {
   "attachment.interrupt": { input: AttachmentInterruption; output: Ok };
   "attachment.repair": { input: AttachmentRequest; output: RepairHandoff };
   "attachment.release": { input: AttachmentRelease; output: Ok };
+  "effect.inspect": { input: IdRequest; output: EffectInspection };
+  "effect.settle": { input: EffectSettlementRequest; output: ActionReceipt };
 }

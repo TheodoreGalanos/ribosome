@@ -15,11 +15,14 @@ await writeFile(join(consumer, 'package.json'), JSON.stringify({ name: 'ribosome
 run('cargo', ['install', '--debug', '--path', 'crates/ribosome-cli', '--locked', '--offline', '--root', consumer]);
 const packed = JSON.parse(run('npm', ['pack', '--workspace', '@ribosome/agents', '--json', '--cache', cache, '--pack-destination', consumer]));
 run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', cache, join(consumer, packed[0].filename)], consumer);
-for (const name of ['attachments.test.mjs', 'pi-attachment.test.mjs', 'attachment-worker-fixture.mjs', 'model-fixture.mjs']) await copyFile(resolve('tests/integration', name), join(consumer, name));
+for (const name of ['attachments.test.mjs', 'pi-attachment.test.mjs', 'attachment-worker-fixture.mjs', 'model-fixture.mjs', 'r7-learning.test.mjs', 'r7-recovery.test.mjs', 'r7-invocation.test.mjs', 'invocation-worker-fixture.mjs']) await copyFile(resolve('tests/integration', name), join(consumer, name));
 await copyFile(resolve('examples/attached-agent/demo.mjs'), join(consumer, 'demo.mjs'));
-const output = run(process.execPath, ['--test', '--test-concurrency=2', 'attachments.test.mjs', 'pi-attachment.test.mjs'], consumer, {
-  ...process.env, RIBOSOME_TEST_CLI: join(consumer, 'bin/ribosome'), RIBOSOME_TEST_WORKER: join(consumer, 'attachment-worker-fixture.mjs'),
+await copyFile(resolve('examples/learned-behavior/demo.mjs'), join(consumer, 'learning-demo.mjs'));
+const output = run(process.execPath, ['--test', '--test-concurrency=2', 'attachments.test.mjs', 'pi-attachment.test.mjs', 'r7-learning.test.mjs', 'r7-recovery.test.mjs', 'r7-invocation.test.mjs'], consumer, {
+  ...process.env, RIBOSOME_TEST_INVOCATION_WORKER: join(consumer, 'invocation-worker-fixture.mjs'), RIBOSOME_TEST_LEARNING: join(consumer, 'learning-demo.mjs'), RIBOSOME_TEST_CLI: join(consumer, 'bin/ribosome'), RIBOSOME_TEST_WORKER: join(consumer, 'attachment-worker-fixture.mjs'),
 });
 await writeFile(join(consumer, 'qualification.log'), output);
 console.log(output);
-console.log(JSON.stringify({ consumer, package: packed[0].filename, evidence: join(consumer, 'qualification.log'), live_model_calls: 0 }));
+const report = { consumer, executable: join(consumer, 'bin/ribosome'), learning_demo: join(consumer, 'learning-demo.mjs'), package: packed[0].filename, evidence: join(consumer, 'qualification.log'), installed_checks: 'passed', prepared_invocation: 'passed', recovery_continuation: 'passed', learning_entrypoint: 'passed', distinct_tests: Number(output.match(/(?:#|ℹ) tests (\d+)/)?.[1]) || null, live_model_calls: 0 };
+if (process.env.RIBOSOME_INSTALL_REPORT) await writeFile(process.env.RIBOSOME_INSTALL_REPORT, JSON.stringify(report, null, 2) + '\n');
+console.log(JSON.stringify(report));

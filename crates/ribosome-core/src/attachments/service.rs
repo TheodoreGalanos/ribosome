@@ -163,12 +163,27 @@ impl AttachmentHost {
                 )
             }
             "attachment.release" => {
-                let runtime = self.supervisor.runtime();
+                let runtime = self.supervisor.executor();
                 let runtime = runtime
                     .try_lock()
                     .map_err(|_| Error::conflict("runtime busy; writer handoff remains held"))?;
                 runtime.release_attachment_repair(&decode(input, params)?)?;
                 Ok(json!({"ok":true}))
+            }
+            "effect.inspect" | "effect.settle" => {
+                let runtime = self.supervisor.executor();
+                let runtime = runtime
+                    .try_lock()
+                    .map_err(|_| Error::conflict("runtime busy; effect ownership remains held"))?;
+                if method == "effect.inspect" {
+                    let request: IdRequest = decode(input, params)?;
+                    encode(output, runtime.inspect_effect(&self.grant, &request.id)?)
+                } else {
+                    encode(
+                        output,
+                        runtime.settle_effect(&self.grant, &decode(input, params)?)?,
+                    )
+                }
             }
             _ => Err(Error::denied("method unavailable")),
         }?;
@@ -246,6 +261,7 @@ impl AttachmentHost {
             summary: e.message,
         });
         self.store.finish_run(run_id, &result)?;
+        let result = self.store.run_result_for_delivery(run_id)?;
         let body: String =
             self.store
                 .db

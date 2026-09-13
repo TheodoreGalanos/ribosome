@@ -72,7 +72,8 @@
         "evaluation",
         "regulation",
         "transplant",
-        "obligation"
+        "obligation",
+        "discovery"
       ]
     },
     "MemoryKind": {
@@ -344,6 +345,16 @@
             "maxLength": 200
           },
           "maxItems": 1000
+        },
+        "discovery_corpus": {
+          "$ref": "#/$defs/VersionRef",
+          "description": "Host-registered immutable discovery corpus. A child cannot replace its parent or root grant corpus."
+        },
+        "prepared_run": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Derived by Rust for prepared reuse. Cannot be supplied in a registered grant."
         }
       },
       "required": [
@@ -530,6 +541,9 @@
             "maxLength": 200
           },
           "maxItems": 1000
+        },
+        "functional_contract": {
+          "$ref": "#/$defs/FunctionalContract"
         }
       },
       "required": [
@@ -626,6 +640,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "grounding": {
+          "$ref": "#/$defs/OccurrenceGrounding"
         }
       },
       "required": [
@@ -716,6 +733,15 @@
           },
           "maxItems": 1000,
           "description": "Saved Evaluation record IDs only; leave empty before evaluation. Motif occurrences belong in provenance.source_refs."
+        },
+        "instruction_contract": {
+          "$ref": "#/$defs/InstructionContract"
+        },
+        "function": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Authored functional category for exact metadata filtering; not a host-verified applicability claim."
         }
       },
       "required": [
@@ -1102,6 +1128,16 @@
           },
           "minItems": 1,
           "maxItems": 100
+        },
+        "study_objective": {
+          "type": "string",
+          "enum": [
+            "function",
+            "system_benefit"
+          ]
+        },
+        "learning_cost": {
+          "$ref": "#/$defs/LearningCost"
         }
       },
       "required": [
@@ -1229,6 +1265,33 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "allocation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "execution_status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "exhausted",
+            "not_started"
+          ]
+        },
+        "usage_complete": {
+          "type": "boolean"
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
         }
       },
       "required": [
@@ -1437,6 +1500,30 @@
         "fallback": {
           "type": "string",
           "maxLength": 65536
+        },
+        "invocation_run": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Actual execute-motif run whose pinned implementation and bindings match this transplant. Omit for advisory preparation without execution."
+        },
+        "recipient_entry_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 100
+        },
+        "result_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 100
         }
       },
       "required": [
@@ -1717,6 +1804,40 @@
           "minLength": 1,
           "maxLength": 200,
           "description": "Exact host event ID for this settled receipt. Use it in provenance.source_refs or evidence_refs. Absent while an intent is still unsettled."
+        },
+        "outcome_basis": {
+          "$ref": "#/$defs/EffectOutcomeBasis",
+          "description": "Evidence supporting the outcome. Absent on legacy receipts; absence never establishes execution or validation."
+        },
+        "validations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationEvidence"
+          },
+          "maxItems": 1000,
+          "description": "Host-captured checks, including exact tool/policy and input/target versions. Missing on legacy receipts."
+        },
+        "restored_validity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000,
+          "description": "Declared target validity restored by this finalization. Historical observation; revalidate before later use."
+        },
+        "restored_properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidatedProperty"
+          },
+          "maxItems": 1000
+        },
+        "settlement": {
+          "$ref": "#/$defs/EffectSettlement",
+          "description": "Separate host decision that the executor has stopped. The original outcome remains unknown, and validity is not restored."
+        },
+        "content_available": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -1738,7 +1859,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "const": "pi-0.85.1/1"
+          "pattern": "^pi-0[.]85[.]1/[12]$"
         },
         "profile": {
           "$ref": "#/$defs/Profile"
@@ -1778,6 +1899,9 @@
         "event_cursor": {
           "type": "string",
           "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "context": {
+          "$ref": "#/$defs/ContextState"
         }
       },
       "required": [
@@ -1824,6 +1948,19 @@
         },
         "checkpoint": {
           "$ref": "#/$defs/Checkpoint"
+        },
+        "parent_allocation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "discovery_corpus": {
+          "$ref": "#/$defs/VersionRef",
+          "description": "Host-registered immutable discovery corpus. A child cannot replace its parent or root grant corpus."
+        },
+        "invocation": {
+          "$ref": "#/$defs/ImplementationInvocation",
+          "description": "Host-selected invocation. Experimental authority is accepted only in sandbox mode; agent work tools cannot set it."
         }
       },
       "required": [
@@ -1942,6 +2079,39 @@
           "minLength": 1,
           "maxLength": 200,
           "description": "Optional filter for the run that produced source events. Omit to read every workflow producer within the grant. Do not substitute a grant ID or invent a run ID."
+        },
+        "event_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "neighbors": {
+          "type": "boolean",
+          "description": "With explicit event_refs, include one hop of declared parents and children. Other filters still apply; relationships remain source-reported, not proven causal."
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Literal case-insensitive substring of serialized event JSON. This searches events; search.query remains record search."
+        },
+        "through_cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$",
+          "description": "Optional inclusive cursor ceiling for this selection. A caller-selected filter is not proof of online-only visibility."
         }
       },
       "required": [
@@ -2020,6 +2190,34 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "query_mode": {
+          "type": "string",
+          "enum": [
+            "all_terms",
+            "any_terms"
+          ]
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "id",
+            "relevance"
+          ]
+        },
+        "eligible": {
+          "type": "boolean",
+          "description": "Filter implementation candidates by granted tool capabilities and effect mode, without requiring admission."
+        },
+        "function": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "Opaque cursor from the preceding page. Preserve the query and filters and set offset=0."
         }
       },
       "required": [
@@ -2044,6 +2242,13 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "next": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "complete": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -2063,7 +2268,7 @@
         "offset": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 1000000
+          "maximum": 4294967295
         },
         "length": {
           "type": "integer",
@@ -2075,6 +2280,16 @@
           "minLength": 1,
           "maxLength": 200,
           "description": "Omit to read the live workspace. Supply the branch receipt output to read that isolated copy."
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional ID of an earlier retained read. Only that read window is available. Omit for a fresh host read."
+        },
+        "required_freshness": {
+          "$ref": "#/$defs/Freshness",
+          "description": "Defaults to current. Historical evidence may remain usable after revision; neither mode grants access to deleted or unauthorized sources."
         }
       },
       "required": [
@@ -2097,7 +2312,7 @@
         "offset": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 1000000
+          "maximum": 4294967295
         },
         "total_bytes": {
           "type": "string",
@@ -2105,6 +2320,14 @@
         },
         "eof": {
           "type": "boolean"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "required_freshness": {
+          "$ref": "#/$defs/Freshness"
         }
       },
       "required": [
@@ -2208,16 +2431,7 @@
           "maximum": 1000000
         },
         "status": {
-          "type": "string",
-          "enum": [
-            "queued",
-            "running",
-            "completed",
-            "failed",
-            "cancelled",
-            "exhausted",
-            "interrupted"
-          ]
+          "$ref": "#/$defs/WorkItemStatus"
         },
         "attempts": {
           "type": "integer",
@@ -2391,6 +2605,16 @@
         "cost_microusd_bound": {
           "type": "string",
           "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "compaction_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "call_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
         }
       },
       "required": [
@@ -2485,6 +2709,26 @@
         "summary": {
           "type": "string",
           "maxLength": 65536
+        },
+        "allocation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "planned_evaluations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "usage_complete": {
+          "type": "boolean"
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2542,11 +2786,15 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
         }
       },
       "required": [
         "path",
-        "count"
+        "count",
+        "artifact"
       ]
     },
     "Variant": {
@@ -2611,6 +2859,14 @@
           },
           "maxItems": 1000,
           "description": "Frozen, scope-checked starting memory. The evaluator initializes each new memory_namespace from these records; retained namespaces keep their subsequent learning state."
+        },
+        "allocation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "implementation_ref": {
+          "$ref": "#/$defs/VersionRef"
         }
       },
       "required": [
@@ -2622,7 +2878,8 @@
         "repetition",
         "memory_namespace",
         "budget",
-        "memory_start"
+        "memory_start",
+        "allocation_id"
       ]
     },
     "EvaluationObservation": {
@@ -2691,6 +2948,33 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "admission_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "evaluation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        },
+        "implementation_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "maxItems": 1000
         }
       },
       "required": [
@@ -3456,6 +3740,1959 @@
         "attachment_id",
         "generation"
       ]
+    },
+    "ContextSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "record",
+            "event",
+            "artifact"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "version"
+      ]
+    },
+    "ContextState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "count": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "generation": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "rebuilt": {
+          "type": "boolean"
+        },
+        "tail_after": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "summary_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "summary_through": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "segment_id",
+        "count",
+        "generation",
+        "rebuilt",
+        "tail_after"
+      ]
+    },
+    "ContextEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContextSource"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "message",
+        "sources"
+      ]
+    },
+    "ContextAppend": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContextEntry"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "segment_id",
+        "after",
+        "entries"
+      ]
+    },
+    "ContextRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "segment_id",
+        "after",
+        "limit"
+      ]
+    },
+    "ContextPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "maxItems": 20
+        },
+        "next": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "messages",
+        "next",
+        "complete"
+      ]
+    },
+    "Freshness": {
+      "type": "string",
+      "enum": [
+        "current",
+        "historical"
+      ]
+    },
+    "CompactionPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "segment_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "through": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "id",
+        "segment_id",
+        "after",
+        "through"
+      ]
+    },
+    "CompactionPreparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/CompactionPlan"
+        }
+      },
+      "required": []
+    },
+    "ContextSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "through": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 16384
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContextSource"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "id",
+        "through",
+        "text",
+        "sources"
+      ]
+    },
+    "CompactionInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/CompactionPlan"
+        },
+        "owner_task": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "previous_summary": {
+          "$ref": "#/$defs/ContextSummary"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "plan",
+        "owner_task",
+        "messages"
+      ]
+    },
+    "CompactionCommit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16384
+        },
+        "permit_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "permit_id"
+      ]
+    },
+    "ToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "evidence.read",
+            "search.query",
+            "record.read",
+            "artifact.read",
+            "action.execute",
+            "action.lookup",
+            "record.submit",
+            "record.retire",
+            "work.request",
+            "message.send",
+            "message.inbox",
+            "message.ack",
+            "experiment.run",
+            "inventory.admission_request",
+            "inventory.archive",
+            "training.export",
+            "artifact.validity",
+            "work.wait",
+            "work.status",
+            "evidence.corpus",
+            "continuation.read"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "call_id",
+        "method",
+        "arguments"
+      ]
+    },
+    "ToolObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContextSource"
+          },
+          "maxItems": 1000
+        },
+        "total_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "content",
+        "artifact",
+        "sources",
+        "total_bytes"
+      ]
+    },
+    "EffectOutcomeBasis": {
+      "type": "string",
+      "enum": [
+        "execution_established",
+        "current_postcondition_observed",
+        "unresolved",
+        "not_dispatched"
+      ]
+    },
+    "ValidationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "check_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "checker_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "receipt_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "stale"
+          ]
+        },
+        "branch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "generation": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidatedProperty"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "check_ref",
+        "checker_version",
+        "policy_version",
+        "authority",
+        "receipt_ref",
+        "inputs",
+        "targets",
+        "outcome",
+        "generation"
+      ]
+    },
+    "PropertyBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "obligation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "obligation",
+        "path"
+      ]
+    },
+    "ValidatedProperty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "obligation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "obligation",
+        "artifact"
+      ]
+    },
+    "PropertyAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "obligation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "unproven",
+            "validated",
+            "stale"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "obligation",
+        "state",
+        "evidence_refs"
+      ]
+    },
+    "ArtifactValidityRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "ArtifactValidity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "observed_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "generation": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PropertyAssessment"
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "artifact",
+        "snapshot_id",
+        "observed_ms",
+        "generation",
+        "properties"
+      ]
+    },
+    "EffectSettlementRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "expected_receipt_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "executor_stopped": {
+          "type": "boolean",
+          "const": true
+        },
+        "workspace_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "operation_id",
+        "expected_receipt_version",
+        "executor_stopped",
+        "workspace_versions",
+        "reason",
+        "source_refs"
+      ]
+    },
+    "EffectSettlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/EffectSettlementRequest"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "recorded_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "request",
+        "evidence_ref",
+        "recorded_ms"
+      ]
+    },
+    "EffectInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "receipt": {
+          "$ref": "#/$defs/ActionReceipt"
+        },
+        "workspace_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 1000
+        },
+        "receipt_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "receipt",
+        "workspace_versions",
+        "receipt_version"
+      ]
+    },
+    "BudgetAllocationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "parent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "cause_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        }
+      },
+      "required": [
+        "id",
+        "parent_id",
+        "cause_id",
+        "purpose",
+        "budget"
+      ]
+    },
+    "BudgetAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "parent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "cause_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "disposition": {
+          "$ref": "#/$defs/Disposition"
+        }
+      },
+      "required": [
+        "id",
+        "grant_id",
+        "cause_id",
+        "purpose",
+        "budget"
+      ]
+    },
+    "BudgetUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "undispatched_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "unknown_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "settled_tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "reserved_tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "settled_cost_microusd": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "reserved_cost_microusd": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "actions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "work_items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "model_calls",
+        "undispatched_calls",
+        "unknown_calls",
+        "settled_tokens",
+        "reserved_tokens",
+        "settled_cost_microusd",
+        "reserved_cost_microusd",
+        "actions",
+        "work_items"
+      ]
+    },
+    "BudgetStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allocation": {
+          "$ref": "#/$defs/BudgetAllocation"
+        },
+        "usage": {
+          "$ref": "#/$defs/BudgetUsage"
+        },
+        "remaining": {
+          "$ref": "#/$defs/Budget"
+        }
+      },
+      "required": [
+        "allocation",
+        "usage",
+        "remaining"
+      ]
+    },
+    "WorkItemStatus": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "exhausted",
+        "interrupted"
+      ]
+    },
+    "WorkWaitRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "work_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "work_ids"
+      ]
+    },
+    "WorkWaitResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "work_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "wait_required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "work_ids",
+        "wait_required"
+      ]
+    },
+    "WorkStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "work_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "$ref": "#/$defs/WorkItemStatus"
+        },
+        "result_available": {
+          "type": "boolean"
+        },
+        "result": {
+          "$ref": "#/$defs/AgentResult"
+        },
+        "source": {
+          "$ref": "#/$defs/ContextSource"
+        }
+      },
+      "required": [
+        "work_id",
+        "status",
+        "result_available"
+      ]
+    },
+    "SessionParkRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "work_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/Checkpoint"
+        }
+      },
+      "required": [
+        "work_ids",
+        "checkpoint"
+      ]
+    },
+    "MotifEntryContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "unresolved_state": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "not_assumed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "inputs",
+        "unresolved_state",
+        "prerequisites",
+        "not_assumed"
+      ]
+    },
+    "MotifRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ]
+    },
+    "MotifDecisionPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "evidence_required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "responses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 1,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "condition",
+        "evidence_required",
+        "responses"
+      ]
+    },
+    "MotifExitContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "required_reports": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "results",
+        "required_reports"
+      ]
+    },
+    "DefinitionRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "specializes",
+            "composes",
+            "replaces"
+          ]
+        },
+        "definition": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "kind",
+        "definition",
+        "explanation"
+      ]
+    },
+    "MotifEvaluationQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "recognition",
+            "function",
+            "causal",
+            "transfer"
+          ]
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "kind",
+        "question"
+      ]
+    },
+    "FunctionalContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/MotifEntryContract"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotifRole"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "decision_points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotifDecisionPoint"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "exit": {
+          "$ref": "#/$defs/MotifExitContract"
+        },
+        "abstention_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DefinitionRelation"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "evaluation_questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotifEvaluationQuestion"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "entry",
+        "roles",
+        "decision_points",
+        "exit",
+        "abstention_conditions",
+        "relations",
+        "evaluation_questions"
+      ]
+    },
+    "MotifRoleBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "role",
+        "event_refs"
+      ]
+    },
+    "MotifDependencyEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_event_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "target_event_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_reported",
+            "inferred"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "source_event_ref",
+        "target_event_ref",
+        "basis",
+        "evidence_refs",
+        "explanation"
+      ]
+    },
+    "MotifLocalOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "satisfied",
+            "violated",
+            "unresolved"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "state",
+        "evidence_refs",
+        "limitations"
+      ]
+    },
+    "MotifAnnotator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "run_id",
+        "operator"
+      ]
+    },
+    "OccurrenceGrounding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotifRoleBinding"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "incoming_context_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "dependency_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MotifDependencyEvidence"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "local_outcome": {
+          "$ref": "#/$defs/MotifLocalOutcome"
+        },
+        "annotator": {
+          "$ref": "#/$defs/MotifAnnotator"
+        },
+        "recognition_visibility": {
+          "type": "string",
+          "enum": [
+            "retrospective",
+            "online"
+          ]
+        }
+      },
+      "required": [
+        "role_bindings",
+        "incoming_context_refs",
+        "dependency_evidence",
+        "local_outcome",
+        "annotator",
+        "recognition_visibility"
+      ]
+    },
+    "DiscoveryWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "execution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "event_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "frontier": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "execution",
+        "event_refs",
+        "frontier"
+      ]
+    },
+    "DiscoveryAlternative": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        }
+      },
+      "required": [
+        "claim",
+        "evidence_refs"
+      ]
+    },
+    "DiscoveryHypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "entry_boundary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "exit_boundary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "support_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "contradiction_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DiscoveryAlternative"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "propose_definition",
+            "recognize_existing",
+            "specialize",
+            "compose",
+            "reject",
+            "inconclusive"
+          ]
+        },
+        "uncertainty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "claim",
+        "entry_boundary",
+        "exit_boundary",
+        "conditions",
+        "support_refs",
+        "contradiction_refs",
+        "alternatives",
+        "decision",
+        "uncertainty"
+      ]
+    },
+    "Discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "work_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "corpus": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "source_windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DiscoveryWindow"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "hypotheses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DiscoveryHypothesis"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "definition_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VersionRef"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "occurrence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "rejected",
+            "inconclusive",
+            "no_motif"
+          ]
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "run_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "minItems": 1,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "corpus",
+        "source_windows",
+        "hypotheses",
+        "definition_refs",
+        "occurrence_refs",
+        "decision",
+        "open_questions",
+        "run_refs"
+      ]
+    },
+    "DiscoveryCorpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "retrospective",
+            "online"
+          ]
+        },
+        "source_windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DiscoveryWindow"
+          },
+          "maxItems": 64
+        },
+        "definition_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VersionRef"
+          },
+          "maxItems": 100
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "maxItems": 64
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CorpusArtifact"
+          },
+          "maxItems": 100
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "visibility",
+        "source_windows",
+        "definition_refs",
+        "limitations",
+        "artifacts",
+        "dependencies"
+      ]
+    },
+    "CorpusArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "artifact",
+        "snapshot_id"
+      ]
+    },
+    "ContinuationKind": {
+      "type": "string",
+      "enum": [
+        "obligation",
+        "effect",
+        "work"
+      ]
+    },
+    "ContinuationRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ContinuationKind"
+        },
+        "after": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "kind",
+        "after",
+        "limit"
+      ]
+    },
+    "ContinuationReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Copy the returned ID verbatim. For a reference {id,version}, pass only id; do not append the separate version."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Copy the returned ID verbatim. For a reference {id,version}, pass only id; do not append the separate version."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ContinuationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ContinuationKind"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContinuationReference"
+          },
+          "maxItems": 100
+        },
+        "next": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "evidence_cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        }
+      },
+      "required": [
+        "kind",
+        "references",
+        "next",
+        "complete",
+        "evidence_cursor"
+      ]
+    },
+    "BindingSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "artifact_path",
+            "tool"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "required"
+      ]
+    },
+    "InstructionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BindingSlot"
+          },
+          "maxItems": 32
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 32
+        },
+        "entry_obligations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 32
+        },
+        "exit_obligations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 32
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 32
+        },
+        "discovery_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VersionRef"
+          },
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "inputs",
+        "outputs",
+        "entry_obligations",
+        "exit_obligations",
+        "limitations",
+        "discovery_refs"
+      ]
+    },
+    "ImplementationInvocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "implementation": {
+          "$ref": "#/$defs/VersionRef"
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": true,
+          "maxProperties": 32
+        },
+        "recipient_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 100
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "production",
+            "experimental"
+          ]
+        }
+      },
+      "required": [
+        "implementation",
+        "bindings",
+        "recipient_refs",
+        "purpose"
+      ]
+    },
+    "InvocationMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "invocation": {
+          "$ref": "#/$defs/ImplementationInvocation"
+        },
+        "implementation": {
+          "$ref": "#/$defs/Implementation"
+        }
+      },
+      "required": [
+        "invocation",
+        "implementation"
+      ]
+    },
+    "LearningCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cost_microusd": {
+          "type": "string",
+          "pattern": "^[0-9]+$",
+          "maxLength": 20
+        },
+        "reuse_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cost_microusd",
+        "reuse_count",
+        "complete"
+      ]
     }
   },
   "x-methods": {
@@ -3558,6 +5795,86 @@
     "session.events": [
       "AgentActivityBatch",
       "Ok"
+    ],
+    "session.context": [
+      "Empty",
+      "ContextState"
+    ],
+    "session.context.append": [
+      "ContextAppend",
+      "ContextState"
+    ],
+    "session.context.read": [
+      "ContextRead",
+      "ContextPage"
+    ],
+    "session.compaction.prepare": [
+      "Empty",
+      "CompactionPreparation"
+    ],
+    "session.compaction.read": [
+      "IdRequest",
+      "CompactionInput"
+    ],
+    "session.compaction.commit": [
+      "CompactionCommit",
+      "ContextSummary"
+    ],
+    "session.summary": [
+      "IdRequest",
+      "ContextSummary"
+    ],
+    "tool.call": [
+      "ToolCall",
+      "ToolObservation"
+    ],
+    "tool.result": [
+      "IdRequest",
+      "ToolObservation"
+    ],
+    "artifact.validity": [
+      "ArtifactValidityRequest",
+      "ArtifactValidity"
+    ],
+    "model.dispatch": [
+      "IdRequest",
+      "Ok"
+    ],
+    "model.release": [
+      "IdRequest",
+      "Ok"
+    ],
+    "budget.status": [
+      "Empty",
+      "BudgetStatus"
+    ],
+    "model.permit.lookup": [
+      "IdRequest",
+      "Permit"
+    ],
+    "work.wait": [
+      "WorkWaitRequest",
+      "WorkWaitResult"
+    ],
+    "work.status": [
+      "IdRequest",
+      "WorkStatus"
+    ],
+    "session.park": [
+      "SessionParkRequest",
+      "Ok"
+    ],
+    "evidence.corpus": [
+      "Empty",
+      "DiscoveryCorpus"
+    ],
+    "continuation.read": [
+      "ContinuationRead",
+      "ContinuationPage"
+    ],
+    "invocation.read": [
+      "Empty",
+      "InvocationMaterial"
     ]
   },
   "x-records": {
@@ -3573,7 +5890,8 @@
     "evaluation": "Evaluation",
     "regulation": "Regulation",
     "transplant": "Transplant",
-    "obligation": "Obligation"
+    "obligation": "Obligation",
+    "discovery": "Discovery"
   },
   "x-host-methods": {
     "host.hello": [
@@ -3627,6 +5945,14 @@
     "attachment.release": [
       "AttachmentRelease",
       "Ok"
+    ],
+    "effect.inspect": [
+      "IdRequest",
+      "EffectInspection"
+    ],
+    "effect.settle": [
+      "EffectSettlementRequest",
+      "ActionReceipt"
     ]
   }
 }

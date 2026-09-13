@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { RpcPeer } from '../../packages/agents/dist/client/rpc.js';
+import { DatabaseSync } from 'node:sqlite';
+import { AttachmentClient } from '@ribosome/agents/attachments';
 
 const root=resolve('.');
 async function command(args){return new Promise((resolve,reject)=>{const p=spawn(join(root,'target/debug/ribosome'),args,{env:{PATH:process.env.PATH}});let stdout='',stderr='';p.stdout.on('data',b=>stdout+=b);p.stderr.on('data',b=>stderr+=b);p.on('error',reject);p.on('exit',code=>resolve({code,stdout,stderr}));});}
@@ -43,6 +45,51 @@ test('host deadline cancels a pending worker and records exhausted status',async
     await writeFile(join(directory,'report.txt'),'original');const config=faultConfig(directory,'idle-worker-fixture.mjs',1500);const file=join(directory,'config.json');await writeFile(file,JSON.stringify(config));
     const result=await command(['run',file]);assert.equal(result.code,2,result.stderr);assert.equal(JSON.parse(result.stdout).disposition,'exhausted');
   }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+test('host settlement resumes real Pi after a lost adapter outcome without rewriting it as success', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ribosome-settlement-'));
+  let client;
+  try {
+    const report = join(directory, 'report.txt');
+    await writeFile(report, 'original');
+    await writeFile(`${report}.settlement-test`, 'test assertion selector');
+    const config = faultConfig(directory, 'crash-worker-fixture.mjs', 60000);
+    const file = join(directory, 'config.json'), records = join(directory, 'records.json');
+    await writeFile(file, JSON.stringify(config)); await writeFile(records, '[]');
+    const seeded = await command(['records', file, records]); assert.equal(seeded.code, 0, seeded.stderr);
+    const database = join(directory, 'state/ribosome.db');
+    const db = new DatabaseSync(database);
+    db.exec("CREATE TRIGGER lose_outcome BEFORE UPDATE OF observation ON effects WHEN NEW.id='run-fault/crash-edit' BEGIN SELECT RAISE(FAIL,'injected outcome loss'); END");
+    db.close();
+    const crashed = await command(['run', file]); assert.equal(crashed.code, 2, crashed.stderr);
+    assert.equal(await readFile(report, 'utf8'), 'crash edit completed');
+    const reopened = new DatabaseSync(database); reopened.exec('DROP TRIGGER lose_outcome'); reopened.close();
+    const blocked = await command(['run', file]); assert.equal(blocked.code, 2, blocked.stderr);
+    assert.match(JSON.parse(blocked.stdout).summary, /owner reconciliation/);
+    await writeFile(report, 'subsequent owner edit');
+    const inspected = await command(['effect', file, 'run-fault/crash-edit']); assert.equal(inspected.code, 0, inspected.stderr);
+    const view = JSON.parse(inspected.stdout);
+    assert.equal(view.receipt.status, 'unknown');
+    const decision = { operation_id: view.receipt.operation_id, expected_receipt_version: view.receipt_version, executor_stopped: true, workspace_versions: view.workspace_versions, reason: 'The test executor exited and the owner inspected the resulting workspace.', source_refs: [] };
+    client = await AttachmentClient.start({ executable: join(root, 'target/debug/ribosome'), config: file, environment: { PATH: process.env.PATH } });
+    assert.deepEqual(await client.inspectEffect(decision.operation_id), view);
+    const settled = await client.settleEffect(decision);
+    assert.equal(settled.status, 'unknown'); assert.ok(settled.settlement);
+    await client.close(); client = undefined;
+    const settlementFile = join(directory, 'settlement.json'); await writeFile(settlementFile, JSON.stringify(decision));
+    const retried = await command(['settle', file, settlementFile]); assert.equal(retried.code, 0, retried.stderr);
+    assert.deepEqual(JSON.parse(retried.stdout), settled);
+    const resumed = await command(['run', file]); assert.equal(resumed.code, 0, resumed.stderr + resumed.stdout);
+    assert.equal(await readFile(report, 'utf8'), 'subsequent owner edit');
+    const stored = new DatabaseSync(database, { readOnly: true });
+    try {
+      const rows = stored.prepare('SELECT body,settlement FROM effects').all();
+      assert.equal(rows.length, 1);
+      assert.equal(JSON.parse(rows[0].body).status, 'unknown');
+      assert.equal(stored.prepare("SELECT count(*) AS n FROM events WHERE producer='ribosome-host-settlement'").get().n, 1);
+    } finally { stored.close(); }
+  } finally { if (client) await client.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
 test('root deadline also bounds an unresponsive worker handshake', async () => {

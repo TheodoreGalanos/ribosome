@@ -1,5 +1,6 @@
 // Actual Pi loop, scripted only at the model boundary. Infrastructure evidence,
 // not a live-model recognition result or a production mock mode.
+import { appendFileSync } from 'node:fs';
 import { createAgentExecution, RpcPeer } from '@ribosome/agents';
 import { createAssistantMessageEventStream } from '@earendil-works/pi-ai';
 
@@ -8,6 +9,7 @@ let step = 0;
 let request;
 let events = [];
 let artifact;
+let artifactContent;
 let finding;
 let branch;
 let intervention;
@@ -15,16 +17,18 @@ let failed = false;
 const call = peer.call.bind(peer);
 peer.call = async (method, params, signal) => {
   const result = await call(method, params, signal);
-  if (method === 'action.execute' && params.kind === 'apply' && result.status === 'succeeded' && request.prompt.includes('crash-after-apply')) process.exit(42);
+  if (method === 'tool.call' && params.method === 'action.execute' && params.arguments.kind === 'apply' && JSON.parse(result.content).status === 'succeeded' && request.prompt.includes('crash-after-apply')) process.exit(42);
   return result;
 };
 const execution = createAgentExecution(peer, async (model, context) => {
+  const r7 = request.prompt.startsWith('r7:') ? JSON.parse(request.prompt.split('\n')[0].slice(3)) : undefined;
+  if (r7) appendFileSync(r7.capture, JSON.stringify({ run_id: request.run_id, context }) + '\n');
   const last = context.messages.at(-1);
   if (last?.role === 'toolResult') {
     failed ||= last.isError;
     const value = JSON.parse(last.content.filter(p => p.type === 'text').map(p => p.text).join(''));
     if (last.toolName === 'evidence_read') events = value.events ?? [];
-    if (last.toolName === 'artifact_read') artifact = value.artifact;
+    if (last.toolName === 'artifact_read') { artifact = value.artifact; artifactContent = value.content; }
     if (last.toolName === 'record_submit') {
       if (value.kind === 'finding') finding = value.id;
       if (value.kind === 'intervention') intervention = value.id;
@@ -37,7 +41,27 @@ const execution = createAgentExecution(peer, async (model, context) => {
   const provenance = { origin: 'observed', source_refs: events.map(e => e.id), scenario_family: 'attachment-fixture', split: 'development', limitations: ['Scripted provider used only for infrastructure verification.'] };
   const findingBody = { subject: 'report', observation: 'The source reported a report requiring inspection.', interpretation: 'Inspect the actual report before changing it.', evidence_refs: events.map(e => e.id), uncertainty: ['Infrastructure fixture does not establish semantic recognition.'], operator: request.operator };
   let call;
-  if (request.operator === 'excision-repair@1') {
+  if (r7?.verify) {
+    call = [
+      ['action_execute', { kind: 'check', tool: 'report-check' }],
+      ['artifact_validity', { path: 'report.txt' }],
+      ['artifact_validity', { path: 'downstream.txt' }],
+      ['finish', { disposition: 'completed', summary: 'Fresh checks establish current report validity.' }],
+    ][step];
+  } else if (r7?.withdraw) {
+    call = [
+      ['record_read', { id: r7.memory }],
+      ['record_retire', { id: r7.memory, expected_version: '1', delete: false }],
+      ['artifact_validity', { path: 'report.txt' }],
+      ['finish', { disposition: 'completed', summary: 'Retired memory and continued from current artifact evidence.' }],
+    ][step];
+  } else if (request.prompt.includes('feedback-source')) {
+    call = [
+      ['evidence_read', { cursor: '0', limit: 100 }],
+      ['artifact_read', { path: 'report.txt', offset: 0, length: 1000 }],
+      ['finish', { disposition: 'completed', summary: `Advice derived from ${artifactContent}` }],
+    ][step];
+  } else if (request.operator === 'excision-repair@1') {
     const calls = [
       ['evidence_read', { cursor: '0', limit: 100 }],
       ['artifact_read', { path: 'report.txt', offset: 0, length: 1000 }],

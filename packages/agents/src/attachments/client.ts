@@ -4,7 +4,7 @@ import { isAbsolute } from 'node:path';
 import type { Readable, Writable } from 'node:stream';
 import { RpcPeer } from '../client/rpc.js';
 import { validate } from '../client/validation.js';
-import type { Attachment as SavedAttachment, AttachmentFeedback, AttachmentStatus, HarnessEvent, HostHello, HostRpcMethods, RecordEnvelope, RepairHandoff } from '../generated/contracts.js';
+import type { Attachment as SavedAttachment, AttachmentFeedback, AttachmentStatus, EffectSettlementRequest, HarnessEvent, HostHello, HostRpcMethods, RecordEnvelope, RepairHandoff } from '../generated/contracts.js';
 import { bounded, WriteCoordinator } from './coordinator.js';
 
 export interface HarnessEventSource {
@@ -51,6 +51,15 @@ export class AttachmentClient {
       client.child = child;
       return client;
     } catch (error) { child.kill(); throw startupError ?? error; }
+  }
+
+  inspectEffect(operationId: string) {
+    return this.peer.call('effect.inspect', { id: operationId });
+  }
+
+  /** Owner-only decision: stop and inspect the external executor before calling. */
+  settleEffect(request: EffectSettlementRequest) {
+    return this.peer.call('effect.settle', request);
   }
 
   async attach(options: AttachOptions): Promise<HarnessAttachment> {

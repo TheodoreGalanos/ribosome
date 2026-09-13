@@ -1,5 +1,6 @@
 use crate::{
     contracts::*,
+    effect_finalization::{CreatedBranch, EffectObservation},
     error::{Error, Result},
     host::{HostAdapter, hash},
     store::Store,
@@ -16,34 +17,71 @@ use std::sync::{
 
 pub struct Runtime {
     pub store: Store,
-    pub host: Box<dyn HostAdapter>,
+    pub host: Arc<dyn HostAdapter>,
     pub state_dir: PathBuf,
     pub laboratory: crate::experiments::Laboratory,
-    cancellations: Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
+    cancellations: Arc<Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>>,
 }
 
 impl Runtime {
     pub fn new(
-        store: Store,
+        mut store: Store,
         host: Box<dyn HostAdapter>,
         state_dir: impl AsRef<Path>,
     ) -> Result<Self> {
         std::fs::create_dir_all(state_dir.as_ref().join("branches"))?;
         std::fs::create_dir_all(state_dir.as_ref().join("exports"))?;
+        let state_dir = state_dir.as_ref().canonicalize()?;
+        let exports = state_dir.join("exports");
+        if exports.canonicalize()? != exports {
+            return Err(Error::denied(
+                "managed exports directory must not be a symlink",
+            ));
+        }
+        store.export_directory = Some(exports);
+        store.recover_export_files()?;
         // Construction follows host ownership acquisition. Running rows left
         // by a previous host process are interrupted, never silently completed.
-        store.db.execute("UPDATE work SET status='interrupted',body=json_set(body,'$.status','interrupted') WHERE status='running' AND id IN (SELECT id FROM runs WHERE status='running')",[])?;
+        store.db.execute("UPDATE work SET status='interrupted',body=json_set(body,'$.status','interrupted') WHERE status='running'",[])?;
         store.db.execute(
-            "UPDATE runs SET status='interrupted' WHERE status='running'",
+            "UPDATE runs SET status='interrupted' WHERE status IN ('running','waiting')",
             [],
         )?;
+        store.recover_experiment_files()?;
         Ok(Self {
             store,
-            host,
-            state_dir: state_dir.as_ref().canonicalize()?,
+            host: host.into(),
+            state_dir,
             laboratory: crate::experiments::Laboratory::default(),
-            cancellations: Mutex::new(std::collections::HashMap::new()),
+            cancellations: Arc::new(Mutex::new(std::collections::HashMap::new())),
         })
+    }
+
+    pub(crate) fn service_connection(&self) -> Result<Self> {
+        Ok(Self {
+            store: self.store.service_connection()?,
+            host: self.host.clone(),
+            state_dir: self.state_dir.clone(),
+            laboratory: self.laboratory.clone(),
+            cancellations: self.cancellations.clone(),
+        })
+    }
+
+    /// An evaluation owns a fresh workspace, but shares the existing host
+    /// lifecycle and ledger. Construction must not recover active parent runs.
+    pub(crate) fn evaluation_runtime(
+        &self,
+        host: Box<dyn HostAdapter>,
+        state: &Path,
+    ) -> Result<Self> {
+        std::fs::create_dir_all(state.join("branches"))?;
+        std::fs::create_dir_all(state.join("exports"))?;
+        let mut runtime = self.service_connection()?;
+        runtime.host = host.into();
+        runtime.state_dir = state.canonicalize()?;
+        runtime.store.export_directory = Some(runtime.state_dir.join("exports"));
+        runtime.laboratory = crate::experiments::Laboratory::default();
+        Ok(runtime)
     }
 
     pub fn cancellation(&self, run_id: &str) -> Arc<AtomicBool> {
@@ -74,29 +112,59 @@ impl Runtime {
 
     pub fn lookup(&self, run_id: &str, operation: &str) -> Result<ActionReceipt> {
         let grant = self.store.run_grant(run_id)?;
-        let body = self
+        let receipt = self.lookup_for_recovery(run_id, operation)?;
+        self.refresh_artifact_sources(&grant)?;
+        self.store.receipt_for_delivery(&grant, receipt)
+    }
+
+    pub(crate) fn lookup_for_recovery(
+        &self,
+        run_id: &str,
+        operation: &str,
+    ) -> Result<ActionReceipt> {
+        let grant = self.store.run_grant(run_id)?;
+        let (body, phase, settlement): (String, String, Option<String>) = self
             .store
             .db
             .query_row(
-                "SELECT body FROM effects WHERE id=?1 AND grant_id=?2",
+                "SELECT body,phase,settlement FROM effects WHERE id=?1 AND grant_id=?2",
                 params![operation, grant.id],
-                |r| r.get::<_, String>(0),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )
             .optional()?
             .ok_or_else(|| Error::missing("operation not found"))?;
-        let receipt: ActionReceipt = serde_json::from_str(&body)?;
-        if receipt.status == EffectStatus::Started {
-            self.reconcile(&grant, receipt)
-        } else {
-            Ok(receipt)
+        let mut receipt: ActionReceipt = serde_json::from_str(&body)?;
+        receipt.settlement = settlement
+            .map(|value| serde_json::from_str(&value))
+            .transpose()?;
+        match phase.as_str() {
+            "finalized" => Ok(receipt),
+            "observed" => self.finalize_effect(operation),
+            _ => self.reconcile(&grant, receipt),
         }
     }
 
     fn reconcile(&self, grant: &Grant, mut receipt: ActionReceipt) -> Result<ActionReceipt> {
         receipt.reconciled = true;
         receipt.finished_ms = Some(now_ms().to_string());
-        // A completed write whose receipt was lost can be identified from its
-        // intended content. Later unrelated edits leave the outcome unknown.
+        receipt.status = EffectStatus::Unknown;
+        receipt.outcome_basis = Some(EffectOutcomeBasis::Unresolved);
+        receipt.output = "Host has no captured adapter outcome. No retry was dispatched; owner reconciliation remains required.".into();
+        let (writes, generation): (String, i64) = self.store.db.query_row(
+            "SELECT potential_writes,validation_generation FROM effects WHERE id=?1",
+            [&receipt.operation_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let mut writes: Vec<String> = serde_json::from_str(&writes)?;
+        if writes.is_empty()
+            && receipt.action.kind == ActionKind::Execute
+            && receipt.action.branch_id.is_none()
+        {
+            writes = grant
+                .writable_paths
+                .clone()
+                .unwrap_or_else(|| grant.paths.clone());
+        }
         if matches!(receipt.action.kind, ActionKind::Edit | ActionKind::Apply) {
             let workspace = self.branch_path(
                 grant,
@@ -105,27 +173,27 @@ impl Runtime {
                 } else {
                     None
                 },
-            )?;
-            if let (Some(path), Some(content)) = (&receipt.action.path, &receipt.action.content) {
-                let current = self.host.version(grant, path, workspace.as_deref())?;
-                if current.version == hash(content.as_bytes()) {
-                    receipt.status = EffectStatus::Succeeded;
-                    receipt.after = vec![current];
-                    receipt.output="Desired artifact content observed during reconciliation; original response was lost.".into();
-                } else {
-                    receipt.status = EffectStatus::Unknown;
-                    receipt.output="Cannot determine whether the previous edit completed. No retry was dispatched.".into();
+            );
+            if let (Ok(workspace), Some(path), Some(content)) =
+                (workspace, &receipt.action.path, &receipt.action.content)
+            {
+                if workspace.is_none() {
+                    writes.push(path.clone());
                 }
-            } else {
-                receipt.status = EffectStatus::Unknown;
+                if let Ok(current) = self.host.version(grant, path, workspace.as_deref())
+                    && current.version == hash(content.as_bytes())
+                {
+                    receipt.outcome_basis = Some(EffectOutcomeBasis::CurrentPostconditionObserved);
+                    receipt.after = vec![current];
+                    receipt.output = "Desired current content observed. This does not establish dispatch, execution, or required checks. Owner reconciliation and fresh validation remain required.".into();
+                }
             }
-        } else {
-            receipt.status = EffectStatus::Unknown;
-            receipt.output =
-                "Host cannot reconcile this interrupted operation. No retry was dispatched.".into();
         }
-        self.save_receipt(&mut receipt)?;
-        Ok(receipt)
+        let mut observation = EffectObservation::new(receipt);
+        observation.writes = writes;
+        observation.validation_generation = generation;
+        self.capture_effect(&observation)?;
+        self.finalize_effect(&observation.receipt.operation_id)
     }
 
     pub fn reconcile_run(&self, run_id: &str) -> Result<Vec<ActionReceipt>> {
@@ -160,7 +228,8 @@ impl Runtime {
             }
             return self.lookup(run_id, &action.operation_id);
         }
-        let mut receipt = ActionReceipt {
+        let source_ref = id();
+        let receipt = ActionReceipt {
             operation_id: action.operation_id.clone(),
             run_id: run_id.into(),
             status: EffectStatus::Started,
@@ -173,38 +242,111 @@ impl Runtime {
             finished_ms: None,
             elapsed_ms: None,
             reconciled: false,
-            evidence_ref: None,
+            evidence_ref: Some(source_ref.clone()),
+            content_available: Some(true),
+            outcome_basis: None,
+            validations: None,
+            restored_validity: None,
+            restored_properties: None,
+            settlement: None,
         };
         // Commit the intent before the adapter is allowed to execute an effect.
+        let tx = self.store.write_transaction()?;
+        let allocation = self.store.run_allocation_in(run_id)?;
         self.store.db.execute(
-            "INSERT INTO effects(id,run_id,grant_id,body) VALUES (?1,?2,?3,?4)",
+            "INSERT INTO effects(id,run_id,grant_id,body,authority,allocation_id) VALUES (?1,?2,?3,?4,?5,?6)",
             params![
                 receipt.operation_id,
                 run_id,
                 grant.id,
-                serde_json::to_string(&receipt)?
+                serde_json::to_string(&receipt)?,
+                serde_json::to_string(&grant)?,
+                allocation.id
             ],
         )?;
-        let result = self.dispatch(run_id, &grant, &mut receipt);
+        let sequence: i64 = tx.query_row(
+            "SELECT rowid FROM effects WHERE id=?1",
+            [&receipt.operation_id],
+            |row| row.get(0),
+        )?;
+        let mut references = self.store.run_context_sources(run_id)?;
+        references.extend(receipt.action.intervention_ref.iter().cloned());
+        references.extend(
+            receipt
+                .action
+                .implementation
+                .iter()
+                .map(|implementation| implementation.id.clone()),
+        );
+        self.store.ingest(&Event {
+            id: source_ref,
+            scope: grant.scope.clone(),
+            run_id: run_id.into(),
+            producer: "effect-context".into(),
+            sequence: sequence.to_string(),
+            kind: "effect_context".into(),
+            timestamp_ms: receipt.started_ms.clone(),
+            parents: vec![],
+            correlation: receipt.operation_id.clone(),
+            artifacts: vec![],
+            payload: serde_json::json!({"operation_id":receipt.operation_id})
+                .as_object()
+                .unwrap()
+                .clone(),
+            provenance: Provenance {
+                origin: Origin::Observed,
+                source_refs: references,
+                scenario_family: "host-effects".into(),
+                split: crate::validation::derived_split(&grant.visible_splits),
+                limitations: vec![],
+            },
+        })?;
+        tx.commit()?;
+        let mut observation = EffectObservation::new(receipt);
+        let result = self.dispatch(run_id, &grant, &mut observation);
         if let Err(error) = result {
-            receipt.status = match error.code {
-                -32001 => EffectStatus::Denied,
-                -32002 => EffectStatus::Stale,
-                _ => EffectStatus::Failed,
+            let phase: String = self.store.db.query_row(
+                "SELECT phase FROM effects WHERE id=?1",
+                [&observation.receipt.operation_id],
+                |row| row.get(0),
+            )?;
+            let no_effect = phase == "prepared";
+            observation.receipt.status = if no_effect {
+                match error.code {
+                    -32001 => EffectStatus::Denied,
+                    -32002 => EffectStatus::Stale,
+                    _ => EffectStatus::Failed,
+                }
+            } else {
+                EffectStatus::Unknown
             };
-            receipt.output = error.message;
+            observation.receipt.outcome_basis = Some(if no_effect {
+                EffectOutcomeBasis::NotDispatched
+            } else {
+                EffectOutcomeBasis::Unresolved
+            });
+            if no_effect {
+                observation.writes.clear();
+            }
+            observation.receipt.output = error.message;
         }
-        receipt.finished_ms = Some(now_ms().to_string());
-        receipt.elapsed_ms = Some(
+        observation.receipt.finished_ms = Some(now_ms().to_string());
+        observation.receipt.elapsed_ms = Some(
             now_ms()
-                .saturating_sub(counter(&receipt.started_ms)?)
+                .saturating_sub(counter(&observation.receipt.started_ms)?)
                 .to_string(),
         );
-        self.save_receipt(&mut receipt)?;
-        Ok(receipt)
+        self.capture_effect(&observation)?;
+        let receipt = self.finalize_effect(&observation.receipt.operation_id)?;
+        self.store.receipt_for_delivery(&grant, receipt)
     }
 
-    fn dispatch(&self, run_id: &str, grant: &Grant, receipt: &mut ActionReceipt) -> Result<()> {
+    fn dispatch(
+        &self,
+        run_id: &str,
+        grant: &Grant,
+        observation: &mut EffectObservation,
+    ) -> Result<()> {
         self.store.require_active(run_id)?;
         if self.cancellation(run_id).load(Ordering::SeqCst) {
             return Err(Error::denied("run cancelled; effect not dispatched"));
@@ -220,8 +362,23 @@ impl Runtime {
         if attempts > grant.budget.max_actions {
             return Err(Error::exhausted("root action budget exhausted"));
         }
-        let action = &receipt.action;
-        self.store.require_attachment_write(run_id, action)?;
+        let allocation = self.store.run_allocation_in(run_id)?;
+        for owner in self.store.allocation_ancestry(grant, &allocation.id)? {
+            if now_ms() >= counter(&owner.budget.deadline_ms)?
+                || self
+                    .store
+                    .allocation_ledger_status(&self.store.grant(&owner.grant_id)?, &owner.id)?
+                    .usage
+                    .actions
+                    > owner.budget.max_actions
+            {
+                return Err(Error::exhausted(
+                    "child action budget or deadline exhausted",
+                ));
+            }
+        }
+        let action = observation.receipt.action.clone();
+        self.store.require_attachment_write(run_id, &action)?;
         let workspace = self.branch_path(grant, action.branch_id.as_deref())?;
         if let Some(intervention) = &action.intervention_ref {
             let record = self.store.record(grant, intervention)?;
@@ -244,18 +401,15 @@ impl Runtime {
             ActionKind::Branch => {
                 let branch_id = id();
                 let path = self.state_dir.join("branches").join(&branch_id);
+                self.start_dispatch(grant, observation, vec![])?;
                 let versions = self.host.branch(grant, &path)?;
-                self.store.db.execute(
-                    "INSERT INTO branches(id,grant_id,path,versions) VALUES (?1,?2,?3,?4)",
-                    params![
-                        branch_id,
-                        grant.id,
-                        path.to_string_lossy(),
-                        serde_json::to_string(&versions)?
-                    ],
-                )?;
-                receipt.output = branch_id;
-                receipt.after = versions;
+                observation.branch = Some(CreatedBranch {
+                    id: branch_id.clone(),
+                    path,
+                    versions: versions.clone(),
+                });
+                observation.receipt.output = branch_id;
+                observation.receipt.after = versions;
             }
             ActionKind::Edit => {
                 if workspace.is_none()
@@ -280,16 +434,27 @@ impl Runtime {
                     .content
                     .as_deref()
                     .ok_or_else(|| Error::invalid("edit requires content"))?;
-                receipt.before = vec![self.host.version(grant, path, workspace.as_deref())?];
-                receipt.after =
+                observation.receipt.before =
+                    vec![
+                        self.host
+                            .prepare_edit(grant, path, expected, workspace.as_deref())?,
+                    ];
+                self.start_dispatch(
+                    grant,
+                    observation,
+                    if workspace.is_none() {
+                        vec![path.into()]
+                    } else {
+                        vec![]
+                    },
+                )?;
+                observation.receipt.after =
                     vec![
                         self.host
                             .edit(grant, path, expected, content, workspace.as_deref())?,
                     ];
-                if workspace.is_none() {
-                    receipt.side_effects = self.store.invalidate_dependents(&grant.scope, path)?;
-                }
-                receipt.output = "Artifact written; fresh checks remain required.".into();
+                observation.receipt.output =
+                    "Artifact written; fresh checks remain required.".into();
             }
             ActionKind::Check | ActionKind::Execute => {
                 let mut tool = action
@@ -319,34 +484,54 @@ impl Runtime {
                     }
                     tool = implementation.material;
                 }
-                let result = self.host.run_tool(
+                let prepared = self.host.prepare_tool(
+                    grant,
+                    &tool,
+                    workspace.as_deref(),
+                    action.kind == ActionKind::Check,
+                )?;
+                self.require_property_bindings(grant, &prepared.properties)?;
+                observation.preflight.properties = prepared.properties;
+                observation.preflight.checks =
+                    vec![(tool.clone(), prepared.checker_version.clone())];
+                self.pin_effect_checks(observation)?;
+                let potential_writes = if workspace.is_none() {
+                    prepared.writes
+                } else {
+                    vec![]
+                };
+                self.start_dispatch(grant, observation, potential_writes)?;
+                let mut result = self.host.run_tool(
                     grant,
                     &tool,
                     workspace.as_deref(),
                     action.kind == ActionKind::Check,
                     Some(&self.cancellation(run_id)),
                 )?;
-                receipt.before = result.before;
-                receipt.after = result.after;
-                receipt.output = result.output;
+                if result.checker_version != prepared.checker_version {
+                    result.success = false;
+                    result.validation_outcome = ValidationEvidenceOutcome::Stale;
+                    result.output.push_str(
+                        "\nChecker identity changed after preflight; validation is stale.",
+                    );
+                }
+                observation.receipt.validations =
+                    Some(vec![crate::effect_validation::check_evidence(
+                        grant,
+                        &observation.receipt,
+                        &result,
+                        observation.validation_generation,
+                    )?]);
+                observation.receipt.before = result.before;
+                observation.receipt.after = result.after;
+                observation.receipt.output = result.output;
+                observation.receipt.outcome_basis = Some(EffectOutcomeBasis::ExecutionEstablished);
                 if workspace.is_none() {
-                    for path in &result.writes {
-                        receipt
-                            .side_effects
-                            .extend(self.store.invalidate_dependents(&grant.scope, path)?);
-                    }
+                    observation.writes = result.writes;
                 }
                 if !result.success {
-                    receipt.status = EffectStatus::Failed;
+                    observation.receipt.status = EffectStatus::Failed;
                     return Ok(());
-                }
-                if workspace.is_none() {
-                    for path in result.validates {
-                        self.store.db.execute(
-                            "DELETE FROM invalidated WHERE client=?1 AND project=?2 AND path=?3",
-                            params![grant.scope.client, grant.scope.project, path],
-                        )?;
-                    }
                 }
             }
             ActionKind::Apply => {
@@ -369,6 +554,10 @@ impl Runtime {
                     .as_ref()
                     .ok_or_else(|| Error::invalid("apply requires intervention_ref"))?;
                 let intervention = self.store.record(grant, intervention_id)?;
+                observation.preflight.intervention = Some(VersionRef {
+                    id: intervention.id.clone(),
+                    version: intervention.version.clone(),
+                });
                 let intervention: Intervention =
                     serde_json::from_value(Value::Object(intervention.body))?;
                 let base: String = self.store.db.query_row(
@@ -401,32 +590,76 @@ impl Runtime {
                 if required_checks.is_empty() {
                     return Err(Error::denied("apply requires named acceptance checks"));
                 }
-                let mut check_receipts = Vec::new();
-                let mut checked_inputs = Vec::new();
-                for (index, check) in required_checks.into_iter().enumerate() {
-                    let check_action = Action {
-                        operation_id: format!("{}/check/{index}", action.operation_id),
-                        kind: ActionKind::Check,
-                        path: None,
-                        expected_version: None,
-                        content: None,
-                        tool: Some(check.clone()),
-                        branch_id: action.branch_id.clone(),
-                        intervention_ref: None,
-                        implementation: None,
-                    };
-                    let result = self.execute(run_id, check_action)?;
-                    if result.status != EffectStatus::Succeeded {
+                for name in &required_checks {
+                    let prepared = self.host.prepare_tool(grant, name, Some(branch), true)?;
+                    self.require_property_bindings(grant, &prepared.properties)?;
+                    observation
+                        .preflight
+                        .checks
+                        .push(((*name).clone(), prepared.checker_version));
+                    observation.preflight.properties.extend(prepared.properties);
+                }
+                self.pin_effect_checks(observation)?;
+                let mut checked_inputs = vec![];
+                let mut check_receipts = vec![];
+                observation.receipt.validations = Some(vec![]);
+                for (index, name) in required_checks.into_iter().enumerate() {
+                    let result = self.execute(
+                        run_id,
+                        crate::validation::decode(
+                            "Action",
+                            serde_json::json!({
+                                "operation_id": format!("{}/check/{index}", action.operation_id),
+                                "kind": "check", "tool": name, "branch_id": action.branch_id
+                            }),
+                        )?,
+                    )?;
+                    if result.status != EffectStatus::Succeeded
+                        || result.outcome_basis != Some(EffectOutcomeBasis::ExecutionEstablished)
+                    {
                         return Err(Error::denied(
-                            "branch acceptance check failed; inspect its durable receipt",
+                            "application requires established successful acceptance checks",
                         ));
                     }
-                    checked_inputs.extend(result.after);
+                    let certificate = result
+                        .validations
+                        .as_ref()
+                        .filter(|checks| checks.len() == 1)
+                        .and_then(|checks| checks.first())
+                        .ok_or_else(|| {
+                            Error::denied("acceptance check lacks captured validation evidence")
+                        })?;
+                    let planned = observation
+                        .preflight
+                        .checks
+                        .iter()
+                        .find(|(check, _)| check == name)
+                        .unwrap();
+                    if certificate.check_ref != *name
+                        || certificate.branch_id != action.branch_id
+                        || certificate.outcome != ValidationEvidenceOutcome::Passed
+                        || certificate.policy_version
+                            != crate::effect_validation::policy_version(grant)?
+                        || certificate.checker_version != planned.1
+                    {
+                        return Err(Error::conflict(
+                            "acceptance check evidence no longer matches the pinned checker, branch or policy",
+                        ));
+                    }
+                    checked_inputs.extend(certificate.inputs.clone());
+                    observation
+                        .receipt
+                        .validations
+                        .as_mut()
+                        .unwrap()
+                        .push(certificate.clone());
                     check_receipts.push(result.operation_id);
                 }
                 let read = self.host.read(
                     grant,
                     &ArtifactRead {
+                        snapshot_id: None,
+                        required_freshness: None,
                         path: path.into(),
                         offset: 0,
                         length: 65536,
@@ -442,10 +675,25 @@ impl Runtime {
                         "apply content must match checked branch content",
                     ));
                 }
-                if !checked_inputs.iter().any(|input| input.path == path) {
+                if !observation
+                    .receipt
+                    .validations
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .flat_map(|check| &check.targets)
+                    .any(|target| target == &read.artifact)
+                {
                     return Err(Error::denied(
-                        "acceptance checks did not inspect the applied artifact",
+                        "acceptance checks did not explicitly validate the applied artifact",
                     ));
+                }
+                for (name, version) in &observation.preflight.checks {
+                    if self.host.checker_version(name)? != *version {
+                        return Err(Error::conflict(
+                            "required checker changed during branch validation",
+                        ));
+                    }
                 }
                 // Checker inputs are host observations. An incomplete agent
                 // proposal cannot remove them from compatibility checks.
@@ -473,69 +721,20 @@ impl Runtime {
                         ));
                     }
                 }
-                receipt.before = vec![self.host.version(grant, path, None)?];
-                self.store.require_attachment_write(run_id, action)?;
-                receipt.after = vec![self.host.edit(grant, path, expected, &read.content, None)?];
-                receipt.side_effects = self.store.invalidate_dependents(&grant.scope, path)?;
-                receipt.output = format!(
+                observation.receipt.before =
+                    vec![self.host.prepare_edit(grant, path, expected, None)?];
+                self.store.require_attachment_write(run_id, &action)?;
+                self.start_dispatch(grant, observation, vec![path.into()])?;
+                observation.receipt.after =
+                    vec![self.host.edit(grant, path, expected, &read.content, None)?];
+                observation.receipt.output = format!(
                     "Checked branch artifact applied. Check receipts: {}",
                     check_receipts.join(", ")
                 );
             }
         }
-        receipt.status = EffectStatus::Succeeded;
-        Ok(())
-    }
-
-    fn save_receipt(&self, receipt: &mut ActionReceipt) -> Result<()> {
-        // Operation IDs can fill their entire wire limit. Hash the evidence
-        // identifier so even those operations have a valid, stable event ID.
-        let evidence_ref = format!(
-            "receipt:{}",
-            crate::host::hash(receipt.operation_id.as_bytes())
-        );
-        receipt.evidence_ref = Some(evidence_ref.clone());
-        let transaction = self.store.write_transaction()?;
-        self.store.db.execute(
-            "UPDATE effects SET body=?2 WHERE id=?1",
-            params![receipt.operation_id, serde_json::to_string(receipt)?],
-        )?;
-        let grant = self.store.run_grant(&receipt.run_id)?;
-        let sequence: i64 = self.store.db.query_row(
-            "SELECT rowid FROM effects WHERE id=?1",
-            [&receipt.operation_id],
-            |r| r.get(0),
-        )?;
-        let event = Event {
-            id: evidence_ref,
-            scope: grant.scope,
-            run_id: receipt.run_id.clone(),
-            producer: "ribosome-host".into(),
-            sequence: sequence.to_string(),
-            kind: if receipt.action.kind == ActionKind::Check {
-                "check_completion"
-            } else {
-                "action_completion"
-            }
-            .into(),
-            timestamp_ms: receipt
-                .finished_ms
-                .clone()
-                .unwrap_or_else(|| now_ms().to_string()),
-            parents: vec![],
-            correlation: receipt.operation_id.clone(),
-            artifacts: receipt.after.clone(),
-            payload: serde_json::to_value(receipt)?.as_object().unwrap().clone(),
-            provenance: Provenance {
-                origin: Origin::Observed,
-                source_refs: vec![],
-                scenario_family: "host-effects".into(),
-                split: crate::validation::derived_split(&grant.visible_splits),
-                limitations: vec![],
-            },
-        };
-        self.store.ingest(&event)?;
-        transaction.commit()?;
+        observation.receipt.outcome_basis = Some(EffectOutcomeBasis::ExecutionEstablished);
+        observation.receipt.status = EffectStatus::Succeeded;
         Ok(())
     }
 }

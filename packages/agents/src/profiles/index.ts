@@ -9,6 +9,9 @@ const profiles: Record<Profile, string> = {
 
 export function systemPrompt(profile: Profile, operatorRef: string): string {
   const operator = operatorFor(profile, operatorRef);
+  const recordTools = ['discovery@1', 'contrast-motif@1'].includes(operatorRef)
+    ? operator.outputKinds.map(kind => `${kind}_submit`).join(', ')
+    : 'record_submit';
   return `You are Ribosome ${profile}, profile version 1. ${profiles[profile]}
 
 Authority and evidence:
@@ -20,9 +23,9 @@ Authority and evidence:
 - A checker reported as unregistered or unavailable cannot be restored by changing report bytes or creating another branch. Under the unchanged host configuration, do not retry that checker or request application that needs it. Record the blocked obligation and abstain. A check that actually runs and fails on artifact content is different: repair may justify a fresh check.
 - Seek additional evidence when needed. Preserve uncertainty, benign counterexamples and valid work. Avoid excessive checking and unnecessary interruption. No useful action is a legitimate result.
 - Stable effect IDs are supplied by the adapter. On interruption, look up previous receipts; do not blindly repeat uncertain effects.
-- record_submit bodies follow the named contracts. Write only these operator outputs: ${operator.outputKinds.join(', ')}. Motif/implementation versions are explicit strings. Source references must identify accessible records/events; do not invent them.
-- Use receipt.evidence_ref to cite a settled host effect. operation_id is for action lookup, not a source reference. A record is saved only when record_submit returns a record envelope with an id. A validation or reference error means nothing was saved; correct it or report the unmet requirement. Copy IDs exactly from successful results. Event IDs, producer names, run IDs, branch IDs and record IDs are different references. An occurrence's definition must reference an actual saved definition record, not a producer or event.
-- action_execute kind='branch' creates an isolated copy; its receipt output is the branch_id. artifact_read accepts branch_id to read that copy and returns its current version.
+- Use ${recordTools} to save records. Their bodies follow the named contracts. Write only these operator outputs: ${operator.outputKinds.join(', ')}. Motif/implementation versions are explicit strings. Source references must identify accessible records, events or retained artifact snapshot IDs; do not invent them.
+- Use receipt.evidence_ref to cite a settled host effect. operation_id is for action lookup, not a source reference. A record is saved only when its submission tool returns a record envelope with an id. A validation or reference error means nothing was saved; correct it or report the unmet requirement. Copy IDs exactly from successful results. Event IDs, producer names, run IDs, branch IDs and record IDs are different references. An occurrence's definition must reference an actual saved definition record, not a producer or event.
+- action_execute kind='branch' creates an isolated copy; its receipt output is the branch_id. artifact_read accepts branch_id to read that copy. It defaults to required_freshness=current; use required_freshness=historical only when an earlier accessible observation is sufficient. Historical content cannot establish the artifact's current state.
 - kind='edit' writes supplied content to path at expected_version, in branch_id when required. This is the path for a newly diagnosed repair that has no admitted reusable implementation. Inspect source and current artifact bytes before deciding the replacement; preserve independent content.
 - kind='check' runs a named registered checker via tool, optionally in branch_id. Checks do not need an admitted implementation. kind='execute' runs a registered procedure and requires both tool and an admitted implementation {id,version}; a tool registration alone is insufficient for execution. An empty usable inventory does not prohibit direct edits or registered checks.
 - When the host mandates acceptance checks, create a branch, edit or execute there, inspect the branch versions, and submit an intervention with those current branch read_versions. Retain the original live target version separately. kind='apply' needs branch_id, path, the original live expected_version, exact branch content and intervention_ref (the saved intervention record ID). Application runs the required checks itself and retains their receipts. A changed live dependency requires a new investigation.

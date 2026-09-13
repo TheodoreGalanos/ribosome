@@ -71,7 +71,7 @@ fn schema_one_migration_retains_existing_grants_and_runs() {
     assert_eq!(
         db.query_row("PRAGMA user_version", [], |r| r.get::<_, u32>(0))
             .unwrap(),
-        2
+        21
     );
     assert!(Store::open(&path).is_ok());
 }
@@ -129,6 +129,12 @@ fn ingestion_is_idempotent_atomic_and_reports_source_gaps() {
         .evidence(
             &g,
             &EvidenceRequest {
+                event_refs: None,
+                neighbors: None,
+                kind: None,
+                artifact: None,
+                query: None,
+                through_cursor: None,
                 cursor: "0".into(),
                 limit: 100,
                 run_id: Some(a.execution_id.clone()),
@@ -318,6 +324,18 @@ fn feedback_steering_intent_remains_unknown_until_explicit_acknowledgement() {
     r.store
         .open_attachment(&g, &input, &p, &request("template"))
         .unwrap();
+    r.store
+        .begin_run("maintenance", &g.id, &request("maintenance"))
+        .unwrap();
+    r.store
+        .finish_run(
+            "maintenance",
+            &AgentResult {
+                disposition: Disposition::Completed,
+                summary: "advice".into(),
+            },
+        )
+        .unwrap();
     let feedback:AttachmentFeedback=decode("AttachmentFeedback",json!({"id":"feedback","attachment_id":"a","run_id":"maintenance","kind":"finding","state":"pending","summary":"advice","disposition":"completed","record_refs":[],"evidence_refs":[],"artifact_versions":[],"expires_ms":g.budget.deadline_ms,"attempts":0,"detail":""})).unwrap();
     let db = rusqlite::Connection::open(d.path().join("state.db")).unwrap();
     db.execute(
@@ -425,4 +443,84 @@ fn backup_and_index_rebuild_preserve_scope_and_retirement() {
             .unwrap(),
         "ok"
     );
+}
+
+#[test]
+fn feedback_withholds_inherited_memory_and_deletion_removes_its_stored_copy() {
+    for delete in [false, true] {
+        let (directory, runtime, grant, policy) = fixture();
+        runtime
+            .store
+            .open_attachment(&grant, &open("a"), &policy, &request("template"))
+            .unwrap();
+        runtime
+            .store
+            .begin_run("maintenance", &grant.id, &request("maintenance"))
+            .unwrap();
+        let memory = runtime.store.submit(&grant, &decode("RecordSubmission", json!({
+            "kind":"memory","provenance":{"origin":"observed","source_refs":[],"scenario_family":"feedback","split":"development","limitations":[]},
+            "body":{"kind":"episodic","content":"WITHDRAWN-FEEDBACK-MEMORY","applicability":"fixture","evidence_refs":[],"counterexamples":[],"responses":[],"regression_cases":[],"conflicts":[],"supersedes":[]}
+        })).unwrap(), false).unwrap();
+        let context = runtime.store.authorize_context("maintenance").unwrap();
+        runtime.store.append_context("maintenance", &decode("ContextAppend", json!({
+            "segment_id":context.segment_id,"after":"0","entries":[{"message":{"role":"toolResult","toolName":"record_read","content":"WITHDRAWN-FEEDBACK-MEMORY","timestamp":1},"sources":[{"kind":"record","id":memory.id,"version":memory.version}]}]
+        })).unwrap()).unwrap();
+        runtime
+            .store
+            .finish_run(
+                "maintenance",
+                &AgentResult {
+                    disposition: Disposition::Completed,
+                    summary: "WITHDRAWN-FEEDBACK-MEMORY: derived advice".into(),
+                },
+            )
+            .unwrap();
+        // Persisted delivery fixture: no explicit reference to the memory. The
+        // summary must inherit its run's observed sources independently.
+        let feedback: AttachmentFeedback = decode("AttachmentFeedback", json!({"id":"feedback","attachment_id":"a","run_id":"maintenance","kind":"finding","state":"pending","summary":"WITHDRAWN-FEEDBACK-MEMORY: derived advice","disposition":"completed","record_refs":[],"evidence_refs":[],"artifact_versions":[],"expires_ms":grant.budget.deadline_ms,"attempts":0,"detail":""})).unwrap();
+        let path = directory.path().join("state.db");
+        let db = rusqlite::Connection::open(&path).unwrap();
+        db.execute(
+            "INSERT INTO attachment_feedback(id,attachment_id,body) VALUES ('feedback','a',?1)",
+            [serde_json::to_string(&feedback).unwrap()],
+        )
+        .unwrap();
+        assert_eq!(runtime.attachment_feedback("a").unwrap().items.len(), 1);
+        runtime
+            .store
+            .retire(
+                &grant,
+                &RetireRequest {
+                    id: memory.id,
+                    expected_version: memory.version,
+                    delete,
+                },
+            )
+            .unwrap();
+        assert!(
+            runtime.attachment_feedback("a").unwrap().items.is_empty(),
+            "withdrawn run summary was redelivered"
+        );
+        if delete {
+            let body: String = db
+                .query_row(
+                    "SELECT body FROM attachment_feedback WHERE id='feedback'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert!(
+                !body.contains("WITHDRAWN-FEEDBACK-MEMORY"),
+                "cleanup left a copied summary behind"
+            );
+        }
+        drop(runtime);
+        let reopened = Runtime::new(
+            Store::open(path).unwrap(),
+            Box::new(LocalHost::new(directory.path(), BTreeMap::new()).unwrap()),
+            directory.path().join("state"),
+        )
+        .unwrap();
+        assert!(reopened.attachment_feedback("a").unwrap().items.is_empty());
+    }
 }

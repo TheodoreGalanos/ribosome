@@ -311,6 +311,8 @@ Occurrences can cross agents, overlap, nest, and be noncontiguous. They should n
 
 Recognition status is tentative, supported, or rejected. Obligation state is independently open, satisfied, violated, or unknown. Self-reported confidence may be recorded as such, but must not be represented as a calibrated probability without measurement.
 
+Host check evidence is separate from the authored state of an `Obligation`. A registered checker can bind a semantic property to an exact Obligation record version and target artifact. A passing check supports only its declared properties on the observed versions. Revising the property requires renewed host authorization and fresh evidence. Unknown effect outcomes require explicit host settlement of the stopped executor before continuation; settlement cannot establish execution or restore validity. The runtime exposes current assessments through `artifact.validity`; retained receipts and assessments remain historical observations. See [the protocol](protocol.md) for transfer and invalidation rules.
+
 A motif can be present but unsuccessful. A globally failed execution can contain a locally successful occurrence. A correct-looking output does not by itself establish that the intended motif occurred.
 
 ### MotifImplementation
@@ -688,3 +690,9 @@ These are primary implementation references consulted on 12 September 2026. They
 - **[R2] Serde documentation:** `https://serde.rs/`. Reference for Rust serialization/deserialization.
 - **[R3] SQLite FTS5 documentation:** `https://www.sqlite.org/fts5.html`. Reference for local full-text query/index functionality and its build requirements.
 - **[R4] JSON-RPC 2.0 specification:** `https://www.jsonrpc.org/specification`. Reference for request, response, notification and error envelopes. The local pipe framing and durability rules above are Ribosome-specific.
+
+## Whole-agent experimentation
+
+The host can run learned instructions through ordinary Pi execution under the existing experiment and admission contracts. It isolates cases, meters stages against a shared budget, retains missing outcomes and compares complete workflows against retry and critique controls. Functional admission and system-benefit decisions use separate declared objectives. Protected-set exposure persists across grants; archive entries use repeated aggregate evidence. See [protocol](protocol.md#whole-agent-laboratory), [operations](operations.md#running-whole-agent-studies) and [validation](validation.md) for implemented boundaries and observed limitations.
+
+The R7 handoff adds an installed learning example, combined attachment/finalization/validity/withdrawal verification, schema-20 upgrade coverage and a sanitized evidence exporter. The installed live discovery attempt did not produce an executable candidate; learned transfer remains unqualified. See [validation](validation.md#r7-integrated-qualification-and-handoff) for the separate mechanical, installed and model-backed results.

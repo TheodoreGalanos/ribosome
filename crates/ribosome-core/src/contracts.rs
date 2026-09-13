@@ -55,6 +55,10 @@ pub struct Grant {
     pub required_checks: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub writable_paths: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery_corpus: Option<VersionRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepared_run: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -92,6 +96,8 @@ pub struct Definition {
     pub positive_examples: Vec<String>,
     pub counterexamples: Vec<String>,
     pub checks: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub functional_contract: Option<FunctionalContract>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -112,6 +118,8 @@ pub struct Occurrence {
     pub obligations: Vec<ObligationResult>,
     pub assumptions: Vec<String>,
     pub operator: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grounding: Option<OccurrenceGrounding>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -127,6 +135,10 @@ pub struct Implementation {
     pub possible_effects: Vec<String>,
     pub failure_behavior: String,
     pub evaluation_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instruction_contract: Option<InstructionContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub function: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -193,6 +205,10 @@ pub struct Experiment {
     pub variants: Vec<Variant>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub development_cases: Option<Vec<DevelopmentCase>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub study_objective: Option<ExperimentStudyObjective>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub learning_cost: Option<LearningCost>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -222,6 +238,14 @@ pub struct Evaluation {
     pub artifact_refs: Vec<ArtifactRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub descriptor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allocation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_status: Option<EvaluationExecutionStatus>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_complete: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_refs: Option<Vec<String>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -264,6 +288,12 @@ pub struct Transplant {
     pub incompatibilities: Vec<String>,
     pub checks: Vec<String>,
     pub fallback: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invocation_run: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recipient_entry_refs: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_refs: Option<Vec<String>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -341,6 +371,18 @@ pub struct ActionReceipt {
     pub reconciled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome_basis: Option<EffectOutcomeBasis>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validations: Option<Vec<ValidationEvidence>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restored_validity: Option<Vec<ArtifactRef>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restored_properties: Option<Vec<ValidatedProperty>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settlement: Option<EffectSettlement>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_available: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -353,6 +395,8 @@ pub struct Checkpoint {
     pub messages: Vec<serde_json::Map<String, serde_json::Value>>,
     pub pending_operations: Vec<String>,
     pub event_cursor: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<ContextState>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -365,6 +409,12 @@ pub struct AgentRunRequest {
     pub model: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkpoint: Option<Checkpoint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_allocation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery_corpus: Option<VersionRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invocation: Option<ImplementationInvocation>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -401,6 +451,18 @@ pub struct EvidenceRequest {
     pub limit: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_refs: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub neighbors: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact: Option<ArtifactRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub through_cursor: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -420,12 +482,26 @@ pub struct SearchRequest {
     pub inventory: SearchRequestInventory,
     pub limit: u32,
     pub offset: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_mode: Option<SearchRequestQueryMode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<SearchRequestOrder>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eligible: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub function: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RecordPage {
     pub records: Vec<RecordEnvelope>,
     pub next_offset: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub complete: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -435,6 +511,10 @@ pub struct ArtifactRead {
     pub length: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub branch_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snapshot_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_freshness: Option<Freshness>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -444,6 +524,10 @@ pub struct ArtifactChunk {
     pub offset: u32,
     pub total_bytes: String,
     pub eof: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snapshot_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_freshness: Option<Freshness>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -510,6 +594,10 @@ pub struct PermitRequest {
     pub max_output_tokens: u32,
     pub input_tokens_bound: String,
     pub cost_microusd_bound: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compaction_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -537,6 +625,16 @@ pub struct ExperimentResult {
     pub evaluation_refs: Vec<String>,
     pub decision: AdmissionDecision,
     pub summary: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allocation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub complete: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub planned_evaluations: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_complete: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report: Option<serde_json::Map<String, serde_json::Value>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -554,6 +652,7 @@ pub struct ExportRequest {
 pub struct ExportResult {
     pub path: String,
     pub count: u32,
+    pub artifact: ArtifactRef,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -573,6 +672,9 @@ pub struct EvaluationTask {
     pub memory_namespace: String,
     pub budget: Budget,
     pub memory_start: Vec<RecordEnvelope>,
+    pub allocation_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_ref: Option<VersionRef>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -594,6 +696,14 @@ pub struct ArchiveCell {
     pub implementation: RecordEnvelope,
     pub quality: f64,
     pub evaluation_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluation_refs: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limitations: Option<Vec<String>>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -770,6 +880,460 @@ pub struct AttachmentRelease {
     pub attachment_id: String,
     pub generation: String,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextSource {
+    pub kind: ContextSourceKind,
+    pub id: String,
+    pub version: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextState {
+    pub segment_id: String,
+    pub count: String,
+    pub generation: String,
+    pub rebuilt: bool,
+    pub tail_after: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary_through: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextEntry {
+    pub message: serde_json::Map<String, serde_json::Value>,
+    pub sources: Vec<ContextSource>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextAppend {
+    pub segment_id: String,
+    pub after: String,
+    pub entries: Vec<ContextEntry>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextRead {
+    pub segment_id: String,
+    pub after: String,
+    pub limit: u32,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextPage {
+    pub messages: Vec<serde_json::Map<String, serde_json::Value>>,
+    pub next: String,
+    pub complete: bool,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompactionPlan {
+    pub id: String,
+    pub segment_id: String,
+    pub after: String,
+    pub through: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompactionPreparation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan: Option<CompactionPlan>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextSummary {
+    pub id: String,
+    pub through: String,
+    pub text: String,
+    pub sources: Vec<ContextSource>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompactionInput {
+    pub plan: CompactionPlan,
+    pub owner_task: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_summary: Option<ContextSummary>,
+    pub messages: Vec<serde_json::Map<String, serde_json::Value>>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompactionCommit {
+    pub id: String,
+    pub text: String,
+    pub permit_id: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToolCall {
+    pub call_id: String,
+    pub method: ToolCallMethod,
+    pub arguments: serde_json::Map<String, serde_json::Value>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToolObservation {
+    pub content: String,
+    pub artifact: ArtifactRef,
+    pub sources: Vec<ContextSource>,
+    pub total_bytes: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ValidationEvidence {
+    pub check_ref: String,
+    pub checker_version: String,
+    pub policy_version: String,
+    pub authority: String,
+    pub receipt_ref: String,
+    pub inputs: Vec<ArtifactRef>,
+    pub targets: Vec<ArtifactRef>,
+    pub outcome: ValidationEvidenceOutcome,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch_id: Option<String>,
+    pub generation: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<Vec<ValidatedProperty>>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropertyBinding {
+    pub obligation: VersionRef,
+    pub path: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ValidatedProperty {
+    pub obligation: VersionRef,
+    pub artifact: ArtifactRef,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropertyAssessment {
+    pub obligation: VersionRef,
+    pub state: PropertyAssessmentState,
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArtifactValidityRequest {
+    pub path: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArtifactValidity {
+    pub artifact: ArtifactRef,
+    pub snapshot_id: String,
+    pub observed_ms: String,
+    pub generation: String,
+    pub properties: Vec<PropertyAssessment>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectSettlementRequest {
+    pub operation_id: String,
+    pub expected_receipt_version: String,
+    pub executor_stopped: bool,
+    pub workspace_versions: Vec<ArtifactRef>,
+    pub reason: String,
+    pub source_refs: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectSettlement {
+    pub request: EffectSettlementRequest,
+    pub evidence_ref: String,
+    pub recorded_ms: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectInspection {
+    pub receipt: ActionReceipt,
+    pub workspace_versions: Vec<ArtifactRef>,
+    pub receipt_version: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BudgetAllocationRequest {
+    pub id: String,
+    pub parent_id: String,
+    pub cause_id: String,
+    pub purpose: String,
+    pub budget: Budget,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BudgetAllocation {
+    pub id: String,
+    pub grant_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    pub cause_id: String,
+    pub purpose: String,
+    pub budget: Budget,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disposition: Option<Disposition>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BudgetUsage {
+    pub model_calls: u32,
+    pub undispatched_calls: u32,
+    pub unknown_calls: u32,
+    pub settled_tokens: String,
+    pub reserved_tokens: String,
+    pub settled_cost_microusd: String,
+    pub reserved_cost_microusd: String,
+    pub actions: u32,
+    pub work_items: u32,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BudgetStatus {
+    pub allocation: BudgetAllocation,
+    pub usage: BudgetUsage,
+    pub remaining: Budget,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkWaitRequest {
+    pub work_ids: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkWaitResult {
+    pub work_ids: Vec<String>,
+    pub wait_required: bool,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkStatus {
+    pub work_id: String,
+    pub status: WorkItemStatus,
+    pub result_available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<AgentResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<ContextSource>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionParkRequest {
+    pub work_ids: Vec<String>,
+    pub checkpoint: Checkpoint,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifEntryContract {
+    pub inputs: Vec<String>,
+    pub unresolved_state: Vec<String>,
+    pub prerequisites: Vec<String>,
+    pub not_assumed: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifRole {
+    pub name: String,
+    pub description: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifDecisionPoint {
+    pub condition: String,
+    pub evidence_required: Vec<String>,
+    pub responses: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifExitContract {
+    pub results: Vec<String>,
+    pub required_reports: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DefinitionRelation {
+    pub kind: DefinitionRelationKind,
+    pub definition: VersionRef,
+    pub explanation: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifEvaluationQuestion {
+    pub kind: MotifEvaluationQuestionKind,
+    pub question: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FunctionalContract {
+    pub entry: MotifEntryContract,
+    pub roles: Vec<MotifRole>,
+    pub decision_points: Vec<MotifDecisionPoint>,
+    pub exit: MotifExitContract,
+    pub abstention_conditions: Vec<String>,
+    pub relations: Vec<DefinitionRelation>,
+    pub evaluation_questions: Vec<MotifEvaluationQuestion>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifRoleBinding {
+    pub role: String,
+    pub event_refs: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifDependencyEvidence {
+    pub source_event_ref: String,
+    pub target_event_ref: String,
+    pub basis: MotifDependencyEvidenceBasis,
+    pub evidence_refs: Vec<String>,
+    pub explanation: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifLocalOutcome {
+    pub state: MotifLocalOutcomeState,
+    pub evidence_refs: Vec<String>,
+    pub limitations: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifAnnotator {
+    pub run_id: String,
+    pub operator: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OccurrenceGrounding {
+    pub role_bindings: Vec<MotifRoleBinding>,
+    pub incoming_context_refs: Vec<String>,
+    pub dependency_evidence: Vec<MotifDependencyEvidence>,
+    pub local_outcome: MotifLocalOutcome,
+    pub annotator: MotifAnnotator,
+    pub recognition_visibility: OccurrenceGroundingRecognitionVisibility,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DiscoveryWindow {
+    pub execution: String,
+    pub event_refs: Vec<String>,
+    pub frontier: serde_json::Map<String, serde_json::Value>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DiscoveryAlternative {
+    pub claim: String,
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DiscoveryHypothesis {
+    pub claim: String,
+    pub entry_boundary: String,
+    pub exit_boundary: String,
+    pub conditions: Vec<String>,
+    pub support_refs: Vec<String>,
+    pub contradiction_refs: Vec<String>,
+    pub alternatives: Vec<DiscoveryAlternative>,
+    pub decision: DiscoveryHypothesisDecision,
+    pub uncertainty: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Discovery {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_ref: Option<String>,
+    pub corpus: VersionRef,
+    pub source_windows: Vec<DiscoveryWindow>,
+    pub hypotheses: Vec<DiscoveryHypothesis>,
+    pub definition_refs: Vec<VersionRef>,
+    pub occurrence_refs: Vec<String>,
+    pub decision: DiscoveryDecision,
+    pub open_questions: Vec<String>,
+    pub run_refs: Vec<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DiscoveryCorpus {
+    pub id: String,
+    pub version: String,
+    pub visibility: DiscoveryCorpusVisibility,
+    pub source_windows: Vec<DiscoveryWindow>,
+    pub definition_refs: Vec<VersionRef>,
+    pub limitations: Vec<String>,
+    pub artifacts: Vec<CorpusArtifact>,
+    pub dependencies: Vec<Dependency>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CorpusArtifact {
+    pub artifact: ArtifactRef,
+    pub snapshot_id: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContinuationRead {
+    pub kind: ContinuationKind,
+    pub after: String,
+    pub limit: u32,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContinuationReference {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContinuationPage {
+    pub kind: ContinuationKind,
+    pub references: Vec<ContinuationReference>,
+    pub next: String,
+    pub complete: bool,
+    pub evidence_cursor: String,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BindingSlot {
+    pub name: String,
+    pub kind: BindingSlotKind,
+    pub required: bool,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InstructionContract {
+    pub inputs: Vec<BindingSlot>,
+    pub outputs: Vec<String>,
+    pub entry_obligations: Vec<String>,
+    pub exit_obligations: Vec<String>,
+    pub limitations: Vec<String>,
+    pub discovery_refs: Vec<VersionRef>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ImplementationInvocation {
+    pub implementation: VersionRef,
+    pub bindings: serde_json::Map<String, serde_json::Value>,
+    pub recipient_refs: Vec<String>,
+    pub purpose: ImplementationInvocationPurpose,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InvocationMaterial {
+    pub invocation: ImplementationInvocation,
+    pub implementation: Implementation,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LearningCost {
+    pub cost_microusd: String,
+    pub reuse_count: u32,
+    pub complete: bool,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mode {
     #[serde(rename = "observe")]
@@ -864,6 +1428,8 @@ pub enum RecordKind {
     Transplant,
     #[serde(rename = "obligation")]
     Obligation,
+    #[serde(rename = "discovery")]
+    Discovery,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MemoryKind {
@@ -957,6 +1523,26 @@ pub enum ExperimentFeedback {
     FullDevelopment,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExperimentStudyObjective {
+    #[serde(rename = "function")]
+    Function,
+    #[serde(rename = "system_benefit")]
+    SystemBenefit,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EvaluationExecutionStatus {
+    #[serde(rename = "completed")]
+    Completed,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+    #[serde(rename = "exhausted")]
+    Exhausted,
+    #[serde(rename = "not_started")]
+    NotStarted,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionKind {
     #[serde(rename = "edit")]
     Edit,
@@ -977,21 +1563,18 @@ pub enum SearchRequestInventory {
     Usable,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorkItemStatus {
-    #[serde(rename = "queued")]
-    Queued,
-    #[serde(rename = "running")]
-    Running,
-    #[serde(rename = "completed")]
-    Completed,
-    #[serde(rename = "failed")]
-    Failed,
-    #[serde(rename = "cancelled")]
-    Cancelled,
-    #[serde(rename = "exhausted")]
-    Exhausted,
-    #[serde(rename = "interrupted")]
-    Interrupted,
+pub enum SearchRequestQueryMode {
+    #[serde(rename = "all_terms")]
+    AllTerms,
+    #[serde(rename = "any_terms")]
+    AnyTerms,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SearchRequestOrder {
+    #[serde(rename = "id")]
+    Id,
+    #[serde(rename = "relevance")]
+    Relevance,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AgentActivityRole {
@@ -1081,4 +1664,220 @@ pub enum FeedbackAcknowledgementOutcome {
     Rejected,
     #[serde(rename = "unknown")]
     Unknown,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContextSourceKind {
+    #[serde(rename = "record")]
+    Record,
+    #[serde(rename = "event")]
+    Event,
+    #[serde(rename = "artifact")]
+    Artifact,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Freshness {
+    #[serde(rename = "current")]
+    Current,
+    #[serde(rename = "historical")]
+    Historical,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ToolCallMethod {
+    #[serde(rename = "evidence.read")]
+    EvidenceRead,
+    #[serde(rename = "search.query")]
+    SearchQuery,
+    #[serde(rename = "record.read")]
+    RecordRead,
+    #[serde(rename = "artifact.read")]
+    ArtifactRead,
+    #[serde(rename = "action.execute")]
+    ActionExecute,
+    #[serde(rename = "action.lookup")]
+    ActionLookup,
+    #[serde(rename = "record.submit")]
+    RecordSubmit,
+    #[serde(rename = "record.retire")]
+    RecordRetire,
+    #[serde(rename = "work.request")]
+    WorkRequest,
+    #[serde(rename = "message.send")]
+    MessageSend,
+    #[serde(rename = "message.inbox")]
+    MessageInbox,
+    #[serde(rename = "message.ack")]
+    MessageAck,
+    #[serde(rename = "experiment.run")]
+    ExperimentRun,
+    #[serde(rename = "inventory.admission_request")]
+    InventoryAdmissionRequest,
+    #[serde(rename = "inventory.archive")]
+    InventoryArchive,
+    #[serde(rename = "training.export")]
+    TrainingExport,
+    #[serde(rename = "artifact.validity")]
+    ArtifactValidity,
+    #[serde(rename = "work.wait")]
+    WorkWait,
+    #[serde(rename = "work.status")]
+    WorkStatus,
+    #[serde(rename = "evidence.corpus")]
+    EvidenceCorpus,
+    #[serde(rename = "continuation.read")]
+    ContinuationRead,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EffectOutcomeBasis {
+    #[serde(rename = "execution_established")]
+    ExecutionEstablished,
+    #[serde(rename = "current_postcondition_observed")]
+    CurrentPostconditionObserved,
+    #[serde(rename = "unresolved")]
+    Unresolved,
+    #[serde(rename = "not_dispatched")]
+    NotDispatched,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidationEvidenceOutcome {
+    #[serde(rename = "passed")]
+    Passed,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "stale")]
+    Stale,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PropertyAssessmentState {
+    #[serde(rename = "unproven")]
+    Unproven,
+    #[serde(rename = "validated")]
+    Validated,
+    #[serde(rename = "stale")]
+    Stale,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WorkItemStatus {
+    #[serde(rename = "queued")]
+    Queued,
+    #[serde(rename = "running")]
+    Running,
+    #[serde(rename = "completed")]
+    Completed,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+    #[serde(rename = "exhausted")]
+    Exhausted,
+    #[serde(rename = "interrupted")]
+    Interrupted,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DefinitionRelationKind {
+    #[serde(rename = "specializes")]
+    Specializes,
+    #[serde(rename = "composes")]
+    Composes,
+    #[serde(rename = "replaces")]
+    Replaces,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MotifEvaluationQuestionKind {
+    #[serde(rename = "recognition")]
+    Recognition,
+    #[serde(rename = "function")]
+    Function,
+    #[serde(rename = "causal")]
+    Causal,
+    #[serde(rename = "transfer")]
+    Transfer,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MotifDependencyEvidenceBasis {
+    #[serde(rename = "source_reported")]
+    SourceReported,
+    #[serde(rename = "inferred")]
+    Inferred,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MotifLocalOutcomeState {
+    #[serde(rename = "satisfied")]
+    Satisfied,
+    #[serde(rename = "violated")]
+    Violated,
+    #[serde(rename = "unresolved")]
+    Unresolved,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OccurrenceGroundingRecognitionVisibility {
+    #[serde(rename = "retrospective")]
+    Retrospective,
+    #[serde(rename = "online")]
+    Online,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiscoveryHypothesisDecision {
+    #[serde(rename = "propose_definition")]
+    ProposeDefinition,
+    #[serde(rename = "recognize_existing")]
+    RecognizeExisting,
+    #[serde(rename = "specialize")]
+    Specialize,
+    #[serde(rename = "compose")]
+    Compose,
+    #[serde(rename = "reject")]
+    Reject,
+    #[serde(rename = "inconclusive")]
+    Inconclusive,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiscoveryDecision {
+    #[serde(rename = "supported")]
+    Supported,
+    #[serde(rename = "rejected")]
+    Rejected,
+    #[serde(rename = "inconclusive")]
+    Inconclusive,
+    #[serde(rename = "no_motif")]
+    NoMotif,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiscoveryCorpusVisibility {
+    #[serde(rename = "retrospective")]
+    Retrospective,
+    #[serde(rename = "online")]
+    Online,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContinuationKind {
+    #[serde(rename = "obligation")]
+    Obligation,
+    #[serde(rename = "effect")]
+    Effect,
+    #[serde(rename = "work")]
+    Work,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BindingSlotKind {
+    #[serde(rename = "string")]
+    String,
+    #[serde(rename = "number")]
+    Number,
+    #[serde(rename = "boolean")]
+    Boolean,
+    #[serde(rename = "object")]
+    Object,
+    #[serde(rename = "array")]
+    Array,
+    #[serde(rename = "artifact_path")]
+    ArtifactPath,
+    #[serde(rename = "tool")]
+    Tool,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ImplementationInvocationPurpose {
+    #[serde(rename = "production")]
+    Production,
+    #[serde(rename = "experimental")]
+    Experimental,
 }

@@ -18,6 +18,7 @@ impl Evaluator for TestEvaluator {
         &self,
         task: &EvaluationTask,
         workspace: &Path,
+        _account: &ribosome_core::experiments::EvaluationAccount<'_>,
         _cancellation: &std::sync::atomic::AtomicBool,
     ) -> Result<EvaluationObservation> {
         // This fixture checks Rust evidence attribution and arm isolation. It
@@ -48,9 +49,18 @@ impl Evaluator for TestEvaluator {
 }
 
 fn fixture(unknown: bool) -> (tempfile::TempDir, Runtime, Grant) {
-    let d = tempfile::tempdir().unwrap();
+    fixture_with_evaluator(Box::new(TestEvaluator { unknown }), 20)
+}
+fn fixture_with_evaluator(
+    evaluator: Box<dyn Evaluator>,
+    max_calls: u32,
+) -> (tempfile::TempDir, Runtime, Grant) {
+    let d = match std::env::var_os("RIBOSOME_EVALUATOR_CRASH_ROOT") {
+        Some(root) => tempfile::tempdir_in(root).unwrap(),
+        None => tempfile::tempdir().unwrap(),
+    };
     let store = Store::open(d.path().join("store.db")).unwrap();
-    let grant:Grant=decode("Grant",json!({"id":"lab-grant","scope":{"client":"test","project":"lab"},"mode":"sandbox","paths":[],"tools":[],"profiles":["experimenter"],"budget":{"max_calls":20,"max_tokens":"100000","max_cost_microusd":"1000000","max_actions":10,"max_work_items":4,"max_depth":2,"deadline_ms":(now_ms()+60000).to_string()},"context":"measurements","visible_splits":["development"],"allow_export":true})).unwrap();
+    let grant:Grant=decode("Grant",json!({"id":"lab-grant","scope":{"client":"test","project":"lab"},"mode":"sandbox","paths":[],"tools":[],"profiles":["experimenter","caretaker","curator"],"budget":{"max_calls":max_calls,"max_tokens":"100000","max_cost_microusd":"1000000","max_actions":10,"max_work_items":4,"max_depth":2,"deadline_ms":(now_ms()+60000).to_string()},"context":"measurements","visible_splits":["development"],"allow_export":true})).unwrap();
     store.register_grant(&grant).unwrap();
     let host = LocalHost::new(d.path(), BTreeMap::new()).unwrap();
     // Real macOS workspaces can exceed the record ID bound before the
@@ -63,7 +73,7 @@ fn fixture(unknown: bool) -> (tempfile::TempDir, Runtime, Grant) {
     .unwrap();
     r.store.begin_run("lab-run",&grant.id,&decode("AgentRunRequest",json!({"run_id":"lab-run","profile":"experimenter","operator":"experiment@1","prompt":"Evaluate normalization","provider":"openai","model":"test-model"})).unwrap()).unwrap();
     r.laboratory
-        .register_evaluator("units".into(), Box::new(TestEvaluator { unknown }))
+        .register_evaluator("units".into(), evaluator)
         .unwrap();
     for id in ["case-1", "case-2"] {
         r.laboratory
@@ -91,6 +101,9 @@ fn fixture(unknown: bool) -> (tempfile::TempDir, Runtime, Grant) {
             retain_learning_memory: false,
             max_evaluations: 8,
             allow_generated_development_cases: false,
+            case_budget: None,
+            study_objective: None,
+            learning_cost: None,
         })
         .unwrap();
     (d, r, grant)
@@ -251,6 +264,9 @@ fn development_policy(r: &mut Runtime, checks: Vec<String>) {
             retain_learning_memory: false,
             max_evaluations: 8,
             allow_generated_development_cases: true,
+            case_budget: None,
+            study_objective: None,
+            learning_cost: None,
         })
         .unwrap();
 }
@@ -380,6 +396,7 @@ impl Evaluator for MemoryEvaluator {
         &self,
         task: &EvaluationTask,
         workspace: &Path,
+        _account: &ribosome_core::experiments::EvaluationAccount<'_>,
         _cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<EvaluationObservation> {
         assert_eq!(task.memory_start.len(), 1);
@@ -429,6 +446,9 @@ fn initial_memory_is_frozen_and_learning_persists_only_within_an_arm_and_repetit
             retain_learning_memory: true,
             max_evaluations: 8,
             allow_generated_development_cases: false,
+            case_budget: None,
+            study_objective: None,
+            learning_cost: None,
         })
         .unwrap();
     let memory = submit(
@@ -523,4 +543,1025 @@ fn agent_experiment_metadata_must_match_its_configured_model() {
     submission["body"]["model_version"] = json!("test-model");
     let saved = r.tool_call("lab-run", "record.submit", submission).unwrap();
     assert_eq!(saved["body"]["model_version"], "test-model");
+}
+
+struct MeteredEvaluator(std::sync::Arc<std::sync::atomic::AtomicU32>);
+impl Evaluator for MeteredEvaluator {
+    fn provider_usage_is_metered(&self) -> bool {
+        true
+    }
+    fn evaluate(
+        &self,
+        task: &EvaluationTask,
+        _: &Path,
+        account: &ribosome_core::experiments::EvaluationAccount<'_>,
+        _: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        let permit = account.permit(&decode("PermitRequest", json!({"call_id":format!("{}:{}:{}",task.arm,task.repetition,task.case_id),"input_tokens_bound":"10","max_output_tokens":10,"cost_microusd_bound":"20"})).unwrap())?;
+        account.dispatch(&permit)?;
+        // Counts dispatches at the trusted adapter boundary, without a paid provider.
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        account.usage(&Usage {
+            permit_id: permit.id,
+            input_tokens: "10".into(),
+            output_tokens: "2".into(),
+            cost_microusd: "12".into(),
+            complete: true,
+        })?;
+        Ok(EvaluationObservation {
+            passed: Some(true),
+            measurements: vec![Measurement {
+                name: "quality".into(),
+                value: Some(1.0),
+                unit: "fraction".into(),
+            }],
+            checks: vec!["independent-check".into()],
+            output: "Metered infrastructure fixture".into(),
+            descriptor: None,
+        })
+    }
+}
+
+#[test]
+fn evaluator_cases_share_five_root_calls_and_exhaustion_keeps_the_complete_matrix() {
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let (_directory, runtime, grant) =
+        fixture_with_evaluator(Box::new(MeteredEvaluator(calls.clone())), 5);
+    let (experiment, _) = experiment(&runtime, &grant);
+    let result = runtime.run_experiment("lab-run", &experiment.id).unwrap();
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 5);
+    assert_eq!(result.decision, AdmissionDecision::Inconclusive);
+    assert_eq!(result.complete, Some(false));
+    assert_eq!(result.planned_evaluations, Some(8));
+    assert_eq!(result.evaluation_refs.len(), 8);
+    assert_eq!(result.usage_complete, Some(true));
+    let mut evaluator_grant = grant.clone();
+    evaluator_grant.visible_splits.push(Split::Holdout);
+    let statuses: Vec<_> = result
+        .evaluation_refs
+        .iter()
+        .map(|id| {
+            runtime.store.record(&evaluator_grant, id).unwrap().body["execution_status"].clone()
+        })
+        .collect();
+    assert_eq!(
+        statuses
+            .iter()
+            .filter(|status| **status == "completed")
+            .count(),
+        5
+    );
+    assert_eq!(
+        statuses
+            .iter()
+            .filter(|status| **status == "exhausted")
+            .count(),
+        1
+    );
+    assert_eq!(
+        statuses
+            .iter()
+            .filter(|status| **status == "not_started")
+            .count(),
+        2
+    );
+    let root = runtime.store.root_budget_status(&grant).unwrap();
+    let study = runtime
+        .store
+        .budget_status(&grant, result.allocation_id.as_ref().unwrap())
+        .unwrap();
+    assert_eq!(root.usage.model_calls, 5);
+    assert_eq!(root.usage.settled_tokens, "60");
+    assert_eq!(root.usage, study.usage);
+    assert_eq!(
+        result,
+        runtime.run_experiment("lab-run", &experiment.id).unwrap()
+    );
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 5);
+}
+
+#[test]
+fn metered_source_and_maintenance_leave_only_the_shared_remainder_for_evaluation() {
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let (_directory, runtime, grant) =
+        fixture_with_evaluator(Box::new(MeteredEvaluator(calls.clone())), 5);
+    let root = runtime.store.root_budget_status(&grant).unwrap().allocation;
+    for (participant, profile, operator) in [
+        ("source", "caretaker", "proofreading@1"),
+        ("maintenance", "caretaker", "proofreading@1"),
+        ("curation", "curator", "discovery@1"),
+    ] {
+        let allocation = runtime
+            .store
+            .allocate(
+                &grant,
+                &BudgetAllocationRequest {
+                    id: participant.into(),
+                    parent_id: root.id.clone(),
+                    cause_id: "measured-treatment".into(),
+                    purpose: participant.into(),
+                    budget: grant.budget.clone(),
+                },
+            )
+            .unwrap();
+        let request = decode("AgentRunRequest", json!({"run_id":participant,"profile":profile,"operator":operator,"prompt":"Meter this participating adapter","provider":"openai","model":"test-model","parent_allocation_id":allocation.id})).unwrap();
+        runtime
+            .store
+            .begin_run(participant, &grant.id, &request)
+            .unwrap();
+        // A host-controlled source transport uses the same public accounting
+        // path as maintenance. Merely attaching an observer does not meter it.
+        let permit = runtime.store.permit(participant, &decode("PermitRequest", json!({"call_id":"first","input_tokens_bound":"10","max_output_tokens":10,"cost_microusd_bound":"20"})).unwrap()).unwrap();
+        runtime
+            .store
+            .dispatch_permit(participant, &permit.id)
+            .unwrap();
+        runtime
+            .store
+            .usage(
+                participant,
+                &Usage {
+                    permit_id: permit.id,
+                    input_tokens: "10".into(),
+                    output_tokens: "2".into(),
+                    cost_microusd: "12".into(),
+                    complete: true,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            runtime
+                .store
+                .budget_status(&grant, &allocation.id)
+                .unwrap()
+                .usage
+                .model_calls,
+            1
+        );
+    }
+    let (experiment, _) = experiment(&runtime, &grant);
+    let result = runtime.run_experiment("lab-run", &experiment.id).unwrap();
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
+    assert_eq!(result.complete, Some(false));
+    assert_eq!(result.decision, AdmissionDecision::Inconclusive);
+    assert_eq!(result.evaluation_refs.len(), 8);
+    let study = runtime
+        .store
+        .budget_status(&grant, result.allocation_id.as_ref().unwrap())
+        .unwrap();
+    assert_eq!(study.usage.model_calls, 2);
+    let root = runtime.store.root_budget_status(&grant).unwrap();
+    assert_eq!(root.usage.model_calls, 5);
+    assert_eq!(root.usage.settled_tokens, "60");
+    assert_eq!(root.remaining.max_calls, 0);
+}
+
+#[test]
+fn invalid_child_study_budget_does_not_consume_a_protected_evaluation() {
+    let (_directory, runtime, grant) = fixture(false);
+    let root = runtime.store.root_budget_status(&grant).unwrap().allocation;
+    let mut budget = grant.budget.clone();
+    budget.max_calls = 1;
+    let allocation = runtime
+        .store
+        .allocate(
+            &grant,
+            &BudgetAllocationRequest {
+                id: "limited".into(),
+                parent_id: root.id,
+                cause_id: "host".into(),
+                purpose: "experimenter".into(),
+                budget,
+            },
+        )
+        .unwrap();
+    let request: AgentRunRequest=decode("AgentRunRequest",json!({"run_id":"limited-run","profile":"experimenter","operator":"experiment@1","prompt":"Evaluate","provider":"openai","model":"test-model","parent_allocation_id":allocation.id})).unwrap();
+    runtime
+        .store
+        .begin_run("limited-run", &grant.id, &request)
+        .unwrap();
+    let (experiment, _) = experiment(&runtime, &grant);
+    assert!(
+        runtime
+            .run_experiment("limited-run", &experiment.id)
+            .unwrap_err()
+            .message
+            .contains("child allocation exceeds")
+    );
+    assert_eq!(
+        runtime
+            .run_experiment("lab-run", &experiment.id)
+            .unwrap()
+            .decision,
+        AdmissionDecision::Accepted
+    );
+}
+
+struct FailingEvaluator {
+    cancel_during_evaluation: bool,
+    calls: std::sync::Arc<std::sync::atomic::AtomicU32>,
+}
+
+struct InvalidObservationEvaluator;
+impl Evaluator for InvalidObservationEvaluator {
+    fn evaluate(
+        &self,
+        _: &EvaluationTask,
+        _: &Path,
+        _: &ribosome_core::experiments::EvaluationAccount<'_>,
+        _: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        Ok(EvaluationObservation {
+            passed: Some(true),
+            measurements: vec![Measurement {
+                name: "quality".into(),
+                value: Some(1.0),
+                unit: String::new(),
+            }],
+            checks: vec!["independent-check".into()],
+            output: "Malformed adapter observation".into(),
+            descriptor: None,
+        })
+    }
+}
+
+struct CancelledAccountEvaluator;
+impl Evaluator for CancelledAccountEvaluator {
+    fn provider_usage_is_metered(&self) -> bool {
+        true
+    }
+    fn evaluate(
+        &self,
+        _: &EvaluationTask,
+        _: &Path,
+        account: &ribosome_core::experiments::EvaluationAccount<'_>,
+        cancellation: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        let request = |id| {
+            decode("PermitRequest", json!({"call_id":id,"input_tokens_bound":"10","max_output_tokens":10,"cost_microusd_bound":"20"})).unwrap()
+        };
+        let dispatched = account.permit(&request("dispatched")).unwrap();
+        account.dispatch(&dispatched).unwrap();
+        let reserved = account.permit(&request("reserved")).unwrap();
+        cancellation.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert!(
+            account.permit(&request("after-cancellation")).is_err(),
+            "cancelled evaluator reserved another call"
+        );
+        assert!(
+            account.dispatch(&reserved).is_err(),
+            "cancelled evaluator dispatched its queued call"
+        );
+        account
+            .usage(&Usage {
+                permit_id: dispatched.id,
+                input_tokens: "10".into(),
+                output_tokens: "2".into(),
+                cost_microusd: "12".into(),
+                complete: true,
+            })
+            .unwrap();
+        account.release(&reserved).unwrap();
+        Err(ribosome_core::error::Error::denied("experiment cancelled"))
+    }
+}
+
+#[test]
+fn cancelled_evaluator_cannot_reserve_or_dispatch_but_can_settle_and_release() {
+    let (_directory, runtime, grant) =
+        fixture_with_evaluator(Box::new(CancelledAccountEvaluator), 20);
+    let (experiment, _) = experiment(&runtime, &grant);
+    let result = runtime.run_experiment("lab-run", &experiment.id).unwrap();
+    assert_eq!(result.complete, Some(false));
+    assert_eq!(result.usage_complete, Some(true));
+    assert_eq!(result.evaluation_refs.len(), 8);
+    let root = runtime.store.root_budget_status(&grant).unwrap();
+    assert_eq!(root.usage.model_calls, 1);
+    assert_eq!(root.usage.settled_tokens, "12");
+    assert_eq!(root.usage.reserved_tokens, "0");
+    assert_eq!(root.usage.unknown_calls, 0);
+    assert_eq!(root.usage.undispatched_calls, 0);
+    assert_eq!(
+        runtime
+            .store
+            .allocation(&grant, result.allocation_id.as_ref().unwrap())
+            .unwrap()
+            .disposition,
+        Some(Disposition::Cancelled)
+    );
+}
+
+#[test]
+fn malformed_evaluator_observations_remain_failed_cases_in_the_matrix() {
+    let (_directory, runtime, grant) =
+        fixture_with_evaluator(Box::new(InvalidObservationEvaluator), 20);
+    let (experiment, _) = experiment(&runtime, &grant);
+    let result = runtime.run_experiment("lab-run", &experiment.id).unwrap();
+    assert_eq!(result.complete, Some(false));
+    assert_eq!(result.decision, AdmissionDecision::Inconclusive);
+    assert_eq!(result.evaluation_refs.len(), 8);
+    let mut evaluator_grant = grant.clone();
+    evaluator_grant.visible_splits.push(Split::Holdout);
+    for id in &result.evaluation_refs {
+        let record = runtime.store.record(&evaluator_grant, id).unwrap();
+        assert_eq!(record.body["execution_status"], "failed");
+        assert!(!record.body.contains_key("passed"));
+        assert_eq!(record.body["measurements"], json!([]));
+        assert!(record.body["output"].as_str().unwrap().contains("unit"));
+    }
+}
+impl Evaluator for FailingEvaluator {
+    fn evaluate(
+        &self,
+        _: &EvaluationTask,
+        _: &Path,
+        _: &ribosome_core::experiments::EvaluationAccount<'_>,
+        cancellation: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if self.cancel_during_evaluation {
+            cancellation.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+        Err(ribosome_core::error::Error::internal("evaluator stopped"))
+    }
+}
+
+#[test]
+fn failed_and_cancelled_evaluations_retain_their_actual_disposition() {
+    for mode in ["failed", "cancel_before", "cancel_during"] {
+        let calls = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let (_directory, runtime, grant) = fixture_with_evaluator(
+            Box::new(FailingEvaluator {
+                cancel_during_evaluation: mode == "cancel_during",
+                calls: calls.clone(),
+            }),
+            20,
+        );
+        let (experiment, _) = experiment(&runtime, &grant);
+        if mode == "cancel_before" {
+            runtime
+                .cancellation("lab-run")
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+        let result = runtime.run_experiment("lab-run", &experiment.id).unwrap();
+        assert_eq!(result.complete, Some(false));
+        assert_eq!(result.decision, AdmissionDecision::Inconclusive);
+        assert_eq!(result.evaluation_refs.len(), 8);
+        let expected = if mode == "failed" {
+            Disposition::Failed
+        } else {
+            Disposition::Cancelled
+        };
+        assert_eq!(
+            runtime
+                .store
+                .allocation(&grant, result.allocation_id.as_ref().unwrap())
+                .unwrap()
+                .disposition,
+            Some(expected.clone()),
+            "{mode}"
+        );
+        let mut evaluator_grant = grant.clone();
+        evaluator_grant.visible_splits.push(Split::Holdout);
+        for (index, id) in result.evaluation_refs.iter().enumerate() {
+            let record = runtime.store.record(&evaluator_grant, id).unwrap();
+            let evaluation: Evaluation =
+                serde_json::from_value(Value::Object(record.body)).unwrap();
+            let status = if mode == "failed" {
+                EvaluationExecutionStatus::Failed
+            } else if index == 0 {
+                EvaluationExecutionStatus::Cancelled
+            } else {
+                EvaluationExecutionStatus::NotStarted
+            };
+            assert_eq!(
+                evaluation.execution_status,
+                Some(status),
+                "{mode} case {index}"
+            );
+            let allocation = runtime
+                .store
+                .allocation(&grant, evaluation.allocation_id.as_ref().unwrap())
+                .unwrap();
+            assert_eq!(
+                allocation.disposition,
+                Some(expected.clone()),
+                "{mode} case {index}"
+            );
+            assert_eq!(
+                runtime
+                    .store
+                    .allocation(&grant, allocation.parent_id.as_ref().unwrap())
+                    .unwrap()
+                    .disposition,
+                Some(expected.clone()),
+                "{mode} arm"
+            );
+        }
+        assert_eq!(
+            calls.load(std::sync::atomic::Ordering::SeqCst),
+            match mode {
+                "failed" => 8,
+                "cancel_before" => 0,
+                _ => 1,
+            }
+        );
+    }
+}
+
+#[test]
+fn source_deletion_removes_development_evaluation_copies_but_retains_protected_evidence() {
+    let (directory, mut runtime, grant) = fixture(false);
+    let (protected_experiment, candidate) = experiment(&runtime, &grant);
+    let protected = runtime
+        .run_experiment("lab-run", &protected_experiment.id)
+        .unwrap();
+    runtime
+        .laboratory
+        .register_case(EvaluationCase {
+            id: "development-case".into(),
+            family: "development-family".into(),
+            split: Split::Development,
+            input: json!({"private_context":"DEVELOPMENT-INPUT-COPY"})
+                .as_object()
+                .unwrap()
+                .clone(),
+        })
+        .unwrap();
+    runtime
+        .laboratory
+        .register_policy(AdmissionPolicy {
+            id: "development-policy".into(),
+            context: grant.context.clone(),
+            evaluator: "units".into(),
+            evaluator_version: "1".into(),
+            case_ids: vec!["development-case".into()],
+            required_checks: vec!["independent-check".into()],
+            metric: "quality".into(),
+            min_quality: 1.0,
+            min_improvement: 0.5,
+            repetitions: 1,
+            allowed_cells: vec!["units".into()],
+            retain_learning_memory: false,
+            max_evaluations: 2,
+            allow_generated_development_cases: false,
+            case_budget: None,
+            study_objective: None,
+            learning_cost: None,
+        })
+        .unwrap();
+    let mut body = serde_json::to_value(&protected_experiment.body).unwrap();
+    body["policy_id"] = json!("development-policy");
+    body["case_ids"] = json!(["development-case"]);
+    body["scenario_families"] = json!(["development-family"]);
+    body["repetitions"] = json!(1);
+    let development_experiment = submit(&runtime, &grant, "experiment", body);
+    let development = runtime
+        .run_experiment("lab-run", &development_experiment.id)
+        .unwrap();
+    for reference in &development.evaluation_refs {
+        assert_eq!(
+            runtime.store.record(&grant, reference).unwrap().body["output"],
+            "protected evaluator observation"
+        );
+    }
+    runtime
+        .store
+        .retire(
+            &grant,
+            &RetireRequest {
+                id: candidate.id,
+                expected_version: candidate.version,
+                delete: true,
+            },
+        )
+        .unwrap();
+    let db = rusqlite::Connection::open(directory.path().join("store.db")).unwrap();
+    let policy: String = db
+        .query_row(
+            "SELECT policy FROM experiments WHERE id=?1",
+            [&development_experiment.id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        !policy.contains("DEVELOPMENT-INPUT-COPY"),
+        "study configuration retained deleted development inputs"
+    );
+    for reference in &development.evaluation_refs {
+        assert!(runtime.store.record(&grant, reference).is_err());
+        let body: String = db
+            .query_row("SELECT body FROM records WHERE id=?1", [reference], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let record: RecordEnvelope = serde_json::from_str(&body).unwrap();
+        assert!(
+            record.body.is_empty(),
+            "development evaluator output survived source deletion"
+        );
+        assert!(record.retired);
+    }
+    for reference in &protected.evaluation_refs {
+        assert!(runtime.store.record(&grant, reference).is_err());
+        let body: String = db
+            .query_row("SELECT body FROM records WHERE id=?1", [reference], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let record: RecordEnvelope = serde_json::from_str(&body).unwrap();
+        assert_eq!(record.provenance.split, Split::Holdout);
+        assert_eq!(record.body["output"], "protected evaluator observation");
+    }
+}
+
+#[test]
+fn retained_experiment_results_cannot_outlive_their_source_experiment() {
+    let (_directory, runtime, grant) = fixture(false);
+    let (experiment, candidate) = experiment(&runtime, &grant);
+    let call =
+        json!({"call_id":"study","method":"experiment.run","arguments":{"id":experiment.id}});
+    let result = runtime
+        .tool_call("lab-run", "tool.call", call.clone())
+        .unwrap();
+    let aggregate: ExperimentResult =
+        serde_json::from_str(result["content"].as_str().unwrap()).unwrap();
+    assert_eq!(aggregate.decision, AdmissionDecision::Accepted);
+    assert!(
+        !result["content"]
+            .as_str()
+            .unwrap()
+            .contains("protected evaluator observation")
+    );
+    runtime
+        .store
+        .retire(
+            &grant,
+            &RetireRequest {
+                id: candidate.id,
+                expected_version: candidate.version,
+                delete: true,
+            },
+        )
+        .unwrap();
+    assert!(
+        runtime.tool_call("lab-run", "tool.call", call).is_err(),
+        "cached experiment result remained available after its source was deleted"
+    );
+    assert!(
+        runtime
+            .tool_call(
+                "lab-run",
+                "artifact.read",
+                json!({"path":result["artifact"]["path"],"offset":0,"length":1000})
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn unregistered_legacy_evaluator_files_require_owner_cleanup_confirmation() {
+    let (directory, runtime, grant) = fixture(false);
+    let (experiment, _) = experiment(&runtime, &grant);
+    runtime.run_experiment("lab-run", &experiment.id).unwrap();
+    let db = rusqlite::Connection::open(directory.path().join("store.db")).unwrap();
+    db.execute(
+        "UPDATE experiments SET result=NULL,policy=json_remove(policy,'$.workspace') WHERE id=?1",
+        [&experiment.id],
+    )
+    .unwrap();
+    let legacy = directory.path().join("legacy-evaluator");
+    std::fs::create_dir(&legacy).unwrap();
+    std::fs::write(legacy.join("input.txt"), "LEGACY-INPUT-COPY").unwrap();
+    runtime
+        .store
+        .retire(
+            &grant,
+            &RetireRequest {
+                id: experiment.id.clone(),
+                expected_version: experiment.version,
+                delete: true,
+            },
+        )
+        .unwrap();
+    let status = runtime.store.source_cleanup_status(&grant).unwrap();
+    assert_eq!(
+        status["jobs"][0]["status"], "failed",
+        "an unknown legacy workspace was reported cleaned"
+    );
+    assert!(legacy.exists());
+    assert!(
+        status["jobs"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("location was not recorded")
+    );
+    let mut wrong_owner = grant.clone();
+    wrong_owner.context = "different policy".into();
+    assert!(
+        runtime
+            .confirm_legacy_experiment_cleanup(&wrong_owner, &experiment.id)
+            .is_err()
+    );
+    // The host owner handles files that the old database cannot locate.
+    std::fs::remove_dir_all(&legacy).unwrap();
+    runtime
+        .confirm_legacy_experiment_cleanup(&grant, &experiment.id)
+        .unwrap();
+    runtime
+        .confirm_legacy_experiment_cleanup(&grant, &experiment.id)
+        .unwrap();
+    assert_eq!(
+        runtime.store.source_cleanup_status(&grant).unwrap()["jobs"][0]["status"],
+        "complete"
+    );
+    assert!(
+        db.query_row(
+            "SELECT result IS NULL FROM experiments WHERE id=?1",
+            [&experiment.id],
+            |row| row.get::<_, bool>(0)
+        )
+        .unwrap(),
+        "owner cleanup must not invent an evaluation result"
+    );
+}
+
+struct ExitingEvaluator;
+impl Evaluator for ExitingEvaluator {
+    fn evaluate(
+        &self,
+        _task: &EvaluationTask,
+        workspace: &Path,
+        _account: &ribosome_core::experiments::EvaluationAccount<'_>,
+        _cancellation: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        std::fs::write(workspace.join("copied-input.txt"), "CRASHED-EVALUATOR-COPY").unwrap();
+        std::process::exit(73);
+    }
+}
+
+#[test]
+fn evaluator_process_exit_requires_owner_confirmation_before_workspace_cleanup() {
+    if let Some(root) = std::env::var_os("RIBOSOME_EVALUATOR_CRASH_ROOT") {
+        let (directory, runtime, grant) = fixture_with_evaluator(Box::new(ExitingEvaluator), 20);
+        std::fs::write(
+            Path::new(&root).join("database-directory"),
+            directory.path().to_str().unwrap(),
+        )
+        .unwrap();
+        let (experiment, _) = experiment(&runtime, &grant);
+        runtime.run_experiment("lab-run", &experiment.id).unwrap();
+        panic!("evaluator did not exit the child process");
+    }
+    let root = tempfile::tempdir().unwrap();
+    let child = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "evaluator_process_exit_requires_owner_confirmation_before_workspace_cleanup",
+            "--nocapture",
+        ])
+        .env("RIBOSOME_EVALUATOR_CRASH_ROOT", root.path())
+        .output()
+        .unwrap();
+    assert_eq!(
+        child.status.code(),
+        Some(73),
+        "{}",
+        String::from_utf8_lossy(&child.stderr)
+    );
+    let directory = std::path::PathBuf::from(
+        std::fs::read_to_string(root.path().join("database-directory")).unwrap(),
+    );
+    let database = directory.join("store.db");
+    let db = rusqlite::Connection::open(&database).unwrap();
+    let workspace: String = db
+        .query_row(
+            "SELECT json_extract(policy,'$.workspace.path') FROM experiments",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let workspace = std::path::PathBuf::from(workspace);
+    assert!(
+        workspace.is_dir(),
+        "child exited before producing a retained workspace"
+    );
+    let copied_files = std::fs::read_dir(&workspace)
+        .unwrap()
+        .flat_map(|arm| std::fs::read_dir(arm.unwrap().path()).unwrap())
+        .map(|case| case.unwrap().path().join("copied-input.txt"))
+        .collect::<Vec<_>>();
+    assert!(copied_files.iter().any(|path| {
+        std::fs::read_to_string(path).is_ok_and(|text| text == "CRASHED-EVALUATOR-COPY")
+    }));
+    let store = Store::open(&database).unwrap();
+    let grant = store.grant("lab-grant").unwrap();
+    let candidate: String = db
+        .query_row(
+            "SELECT json_extract(body,'$.body.candidate.id') FROM records WHERE kind='experiment'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let candidate = store.record(&grant, &candidate).unwrap();
+    store
+        .retire(
+            &grant,
+            &RetireRequest {
+                id: candidate.id,
+                expected_version: candidate.version,
+                delete: true,
+            },
+        )
+        .unwrap();
+    let status = store.source_cleanup_status(&grant).unwrap();
+    assert_eq!(status["jobs"][0]["status"], "failed");
+    assert!(
+        status["jobs"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("still owns its workspace")
+    );
+    assert!(
+        workspace.exists(),
+        "cleanup removed files before execution ownership was recovered"
+    );
+    drop(store);
+    let runtime = Runtime::new(
+        Store::open(&database).unwrap(),
+        Box::new(LocalHost::new(&directory, BTreeMap::new()).unwrap()),
+        workspace.parent().unwrap(),
+    )
+    .unwrap();
+    assert!(
+        workspace.exists(),
+        "an interrupted run is not proof that its external executors stopped"
+    );
+    let experiment: String = db
+        .query_row("SELECT id FROM experiments", [], |row| row.get(0))
+        .unwrap();
+    assert!(
+        runtime
+            .settle_experiment_workspace(&grant, &experiment, false)
+            .is_err()
+    );
+    assert!(workspace.exists());
+    runtime
+        .settle_experiment_workspace(&grant, &experiment, true)
+        .unwrap();
+    assert!(!workspace.exists());
+    assert_eq!(
+        runtime.store.source_cleanup_status(&grant).unwrap()["jobs"][0]["status"],
+        "complete"
+    );
+    assert_eq!(
+        runtime.store.inspect_run("lab-run").unwrap()["status"],
+        "interrupted"
+    );
+    assert!(
+        db.query_row("SELECT result IS NULL FROM experiments", [], |row| row
+            .get::<_, bool>(0))
+            .unwrap(),
+        "recovery fabricated an evaluation result"
+    );
+}
+
+#[test]
+fn protected_family_exposure_survives_a_fresh_grant_and_policy() {
+    let (_d, mut runtime, grant) = fixture(false);
+    let (first, _) = experiment(&runtime, &grant);
+    runtime.run_experiment("lab-run", &first.id).unwrap();
+    let mut fresh = grant.clone();
+    fresh.id = "fresh-grant".into();
+    runtime.store.register_grant(&fresh).unwrap();
+    runtime.store.begin_run("fresh-run", &fresh.id, &decode("AgentRunRequest",json!({"run_id":"fresh-run","profile":"experimenter","operator":"experiment@1","prompt":"Evaluate","provider":"openai","model":"test-model"})).unwrap()).unwrap();
+    runtime
+        .laboratory
+        .register_policy(AdmissionPolicy {
+            id: "renamed-policy".into(),
+            context: grant.context.clone(),
+            evaluator: "units".into(),
+            evaluator_version: "1".into(),
+            case_ids: vec!["case-1".into(), "case-2".into()],
+            required_checks: vec!["independent-check".into()],
+            metric: "quality".into(),
+            min_quality: 1.0,
+            min_improvement: 0.5,
+            repetitions: 2,
+            allowed_cells: vec![],
+            retain_learning_memory: false,
+            max_evaluations: 8,
+            allow_generated_development_cases: false,
+            case_budget: None,
+            study_objective: None,
+            learning_cost: None,
+        })
+        .unwrap();
+    let mut body = serde_json::to_value(first.body).unwrap();
+    body["policy_id"] = json!("renamed-policy");
+    let second = submit(&runtime, &fresh, "experiment", body);
+    let error = runtime
+        .run_experiment("fresh-run", &second.id)
+        .expect_err("fresh grant must not reset protected family exposure");
+    assert!(error.message.contains("protected"), "{error:?}");
+}
+
+struct AggregateEvaluator;
+impl Evaluator for AggregateEvaluator {
+    fn provider_usage_is_metered(&self) -> bool {
+        true
+    }
+    fn evaluate(
+        &self,
+        task: &EvaluationTask,
+        _workspace: &Path,
+        _account: &ribosome_core::experiments::EvaluationAccount<'_>,
+        _cancellation: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        let quality = task.implementation.parameters[&task.case_id][task.repetition as usize]
+            .as_f64()
+            .unwrap();
+        Ok(EvaluationObservation {
+            passed: Some(true),
+            measurements: vec![Measurement {
+                name: "quality".into(),
+                value: Some(quality),
+                unit: "score".into(),
+            }],
+            checks: vec!["independent-check".into()],
+            output: "Host measurement fixture, not semantic evidence".into(),
+            descriptor: Some(task.case_id.clone()),
+        })
+    }
+}
+
+#[test]
+fn archive_uses_all_repetitions_and_retirement_invalidates_the_exact_support() {
+    let (_d, mut runtime, grant) = fixture(false);
+    runtime
+        .laboratory
+        .register_evaluator("aggregate".into(), Box::new(AggregateEvaluator))
+        .unwrap();
+    for case in ["a", "b"] {
+        runtime
+            .laboratory
+            .register_case(EvaluationCase {
+                id: case.into(),
+                family: format!("dev-{case}"),
+                split: Split::Development,
+                input: serde_json::Map::new(),
+            })
+            .unwrap();
+    }
+    runtime
+        .laboratory
+        .register_policy(AdmissionPolicy {
+            id: "aggregate".into(),
+            context: grant.context.clone(),
+            evaluator: "aggregate".into(),
+            evaluator_version: "1".into(),
+            case_ids: vec!["a".into(), "b".into()],
+            required_checks: vec!["independent-check".into()],
+            metric: "quality".into(),
+            min_quality: 1.0,
+            min_improvement: 0.0,
+            repetitions: 2,
+            allowed_cells: vec!["a".into(), "b".into()],
+            retain_learning_memory: false,
+            max_evaluations: 8,
+            allow_generated_development_cases: false,
+            case_budget: None,
+            study_objective: Some(ExperimentStudyObjective::Function),
+            learning_cost: None,
+        })
+        .unwrap();
+    let prepare = |name: &str, scores: Value| {
+        let record = material(&runtime, &grant, name);
+        let mut body = record.body;
+        body.insert("parameters".into(), scores);
+        submit(&runtime, &grant, "implementation", Value::Object(body))
+    };
+    let baseline = prepare("baseline", json!({"a":[1,1],"b":[1,1]}));
+    let a = prepare("context-a", json!({"a":[10,10],"b":[1,1]}));
+    let b = prepare("context-b", json!({"a":[1,11],"b":[10,10]}));
+    let mut first_support = String::new();
+    for candidate in [&a, &b] {
+        let study = submit(
+            &runtime,
+            &grant,
+            "experiment",
+            json!({"name":"aggregate-fixture","template":"stress","study_objective":"function","candidate":{"id":candidate.id,"version":"1"},"baseline":{"id":baseline.id,"version":"1"},"hypothesis":"Aggregate contextual measurement","case_ids":["a","b"],"scenario_families":["dev-a","dev-b"],"feedback":"aggregate","model_version":"fixture","tool_versions":[],"memory_start_refs":[],"repetitions":2,"budget":grant.budget,"metrics":["quality"],"policy_id":"aggregate","selection_frozen":true,"variants":[]}),
+        );
+        let result = runtime.run_experiment("lab-run", &study.id).unwrap();
+        assert_eq!(result.decision, AdmissionDecision::Accepted);
+        if first_support.is_empty() {
+            first_support = study.id.clone();
+        }
+        let recommendation = submit(
+            &runtime,
+            &grant,
+            "recommendation",
+            json!({"implementation":{"id":candidate.id,"version":"1"},"context":grant.context,"decision":"accepted","evaluation_refs":result.evaluation_refs,"rationale":"Repeated host fixture","restrictions":["Fixture only"]}),
+        );
+        runtime
+            .request_admission("lab-run", &recommendation.id)
+            .unwrap();
+    }
+    let archive = runtime.store.archive(&grant).unwrap();
+    assert_eq!(archive.cells.len(), 2);
+    assert_eq!(
+        archive.cells[0].implementation.id, a.id,
+        "single lucky 11 must not displace repeated 10"
+    );
+    assert_eq!(archive.cells[0].quality, 10.0);
+    assert_eq!(archive.cells[1].implementation.id, b.id);
+    assert_eq!(archive.cells[0].evaluation_refs.as_ref().unwrap().len(), 8);
+    let evidence = runtime.store.record(&grant, &first_support).unwrap();
+    runtime
+        .store
+        .retire(
+            &grant,
+            &RetireRequest {
+                id: first_support,
+                expected_version: evidence.version,
+                delete: false,
+            },
+        )
+        .unwrap();
+    let archive = runtime.store.archive(&grant).unwrap();
+    assert_eq!(archive.cells.len(), 1);
+    assert_eq!(archive.cells[0].implementation.id, b.id);
+}
+
+#[test]
+fn protected_family_cannot_be_a_renamed_donor_family() {
+    let (_d, runtime, grant) = fixture(false);
+    let (study, candidate) = experiment(&runtime, &grant);
+    let mut submission: RecordSubmission = decode(
+        "RecordSubmission",
+        json!({"kind":"implementation","provenance":candidate.provenance,"body":candidate.body}),
+    )
+    .unwrap();
+    submission.provenance.scenario_family = "family-case-1".into();
+    let donor = runtime.store.submit(&grant, &submission, false).unwrap();
+    let mut body = study.body;
+    body.insert("candidate".into(), json!({"id":donor.id,"version":"1"}));
+    let study = submit(&runtime, &grant, "experiment", Value::Object(body));
+    let error = runtime.run_experiment("lab-run", &study.id).unwrap_err();
+    assert!(error.message.contains("source lineage"), "{error:?}");
+}
+
+struct OneExhaustedCase(std::sync::atomic::AtomicU32);
+impl Evaluator for OneExhaustedCase {
+    fn provider_usage_is_metered(&self) -> bool {
+        true
+    }
+    fn evaluate(
+        &self,
+        _task: &EvaluationTask,
+        _workspace: &Path,
+        _account: &ribosome_core::experiments::EvaluationAccount<'_>,
+        _cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<EvaluationObservation> {
+        if self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+            return Err(ribosome_core::error::Error::exhausted(
+                "local case allowance reached",
+            ));
+        }
+        Ok(EvaluationObservation {
+            passed: Some(true),
+            measurements: vec![Measurement {
+                name: "quality".into(),
+                value: Some(1.0),
+                unit: "fraction".into(),
+            }],
+            checks: vec!["independent-check".into()],
+            output: "Independent later case executed".into(),
+            descriptor: None,
+        })
+    }
+}
+#[test]
+fn a_local_case_limit_does_not_cancel_other_funded_cases() {
+    let (_d, runtime, grant) = fixture_with_evaluator(
+        Box::new(OneExhaustedCase(std::sync::atomic::AtomicU32::new(0))),
+        20,
+    );
+    let (study, _) = experiment(&runtime, &grant);
+    let result = runtime.run_experiment("lab-run", &study.id).unwrap();
+    assert_eq!(result.complete, Some(false));
+    assert_eq!(result.decision, AdmissionDecision::Inconclusive);
+    let mut authority = grant;
+    authority.visible_splits.push(Split::Holdout);
+    let statuses: Vec<_> = result
+        .evaluation_refs
+        .iter()
+        .map(|id| runtime.store.record(&authority, id).unwrap().body["execution_status"].clone())
+        .collect();
+    assert_eq!(statuses[0], "exhausted");
+    assert_eq!(
+        result.report.as_ref().unwrap()["arms"][0]["verified_success_rate"],
+        0.75
+    );
+    assert_eq!(statuses.iter().filter(|s| **s == "completed").count(), 7);
 }

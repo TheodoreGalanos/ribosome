@@ -14,7 +14,15 @@ impl Runtime {
         validate(input, &params)?;
         let settling = matches!(
             method,
-            "model.usage" | "session.checkpoint" | "session.events" | "action.lookup"
+            "model.usage"
+                | "model.release"
+                | "model.permit.lookup"
+                | "budget.status"
+                | "session.compaction.commit"
+                | "session.context.append"
+                | "session.checkpoint"
+                | "session.events"
+                | "action.lookup"
         );
         let grant = if settling {
             self.store.run_grant(run_id)?
@@ -28,8 +36,119 @@ impl Runtime {
         {
             return Err(Error::denied("run cancelled"));
         }
+        if grant.discovery_corpus.is_some()
+            && matches!(
+                method,
+                "action.execute"
+                    | "record.retire"
+                    | "message.ack"
+                    | "artifact.validity"
+                    | "experiment.run"
+                    | "inventory.admission_request"
+                    | "training.export"
+                    | "message.send"
+                    | "message.inbox"
+            )
+        {
+            return Err(Error::denied(
+                "assigned discovery uses frozen evidence; this operation requires separate host-authorized work",
+            ));
+        }
+        if matches!(
+            method,
+            "session.context"
+                | "session.compaction.prepare"
+                | "session.compaction.read"
+                | "session.compaction.commit"
+                | "session.summary"
+                | "model.permit"
+                | "model.dispatch"
+                | "session.context.read"
+                | "artifact.read"
+                | "artifact.validity"
+                | "record.read"
+                | "record.submit"
+                | "search.query"
+                | "evidence.read"
+                | "continuation.read"
+                | "inventory.archive"
+                | "message.inbox"
+                | "message.send"
+                | "training.export"
+        ) {
+            self.refresh_artifact_sources(&grant)?;
+        }
+        if grant.prepared_run.is_some()
+            && matches!(
+                method,
+                "message.inbox"
+                    | "message.send"
+                    | "training.export"
+                    | "evidence.corpus"
+                    | "experiment.run"
+            )
+        {
+            return Err(Error::denied(
+                "prepared reuse requires separate host-scoped investigation for this operation",
+            ));
+        }
         let result = match method {
+            "invocation.read" => encode(output, self.store.invocation_material(run_id, &grant)?),
+            "continuation.read" => encode(
+                output,
+                self.store.continuation(run_id, &decode(input, params)?)?,
+            ),
+            "evidence.corpus" => {
+                let reference = grant
+                    .discovery_corpus
+                    .as_ref()
+                    .ok_or_else(|| Error::missing("run has no host-assigned discovery corpus"))?;
+                encode(output, self.store.discovery_corpus(&grant, reference)?)
+            }
+            "tool.call" => encode(output, self.observe_tool(run_id, &decode(input, params)?)?),
+            "tool.result" => {
+                let p: IdRequest = decode(input, params)?;
+                encode(output, self.retained_tool(run_id, &p.id)?)
+            }
+            "session.compaction.prepare" => encode(output, self.store.prepare_compaction(run_id)?),
+            "session.compaction.read" => {
+                let p: IdRequest = decode(input, params)?;
+                encode(output, self.store.read_compaction(run_id, &p.id)?)
+            }
+            "session.compaction.commit" => encode(
+                output,
+                self.store
+                    .commit_compaction(run_id, &decode(input, params)?)?,
+            ),
+            "session.summary" => {
+                let p: IdRequest = decode(input, params)?;
+                encode(output, self.store.read_summary(run_id, &p.id)?)
+            }
+            "session.context" => encode(output, self.store.authorize_context(run_id)?),
+            "session.context.append" => encode(
+                output,
+                self.store.append_context(run_id, &decode(input, params)?)?,
+            ),
+            "session.context.read" => encode(
+                output,
+                self.store.read_context(run_id, &decode(input, params)?)?,
+            ),
             "session.grant" => encode(output, &grant),
+            "budget.status" => encode(output, self.store.run_budget_status(run_id)?),
+            "model.dispatch" | "model.release" | "model.permit.lookup" => {
+                let request: IdRequest = decode(input, params)?;
+                match method {
+                    "model.dispatch" => {
+                        self.store.dispatch_permit(run_id, &request.id)?;
+                        Ok(json!({"ok": true}))
+                    }
+                    "model.release" => {
+                        self.store.release_permit(run_id, &request.id)?;
+                        Ok(json!({"ok": true}))
+                    }
+                    _ => encode(output, self.store.lookup_permit(run_id, &request.id)?),
+                }
+            }
             "inventory.archive" => encode(output, self.store.archive(&grant)?),
             "evidence.read" => {
                 let mut request: EvidenceRequest = decode(input, params)?;
@@ -58,16 +177,29 @@ impl Runtime {
             }
             "artifact.read" => {
                 let p: ArtifactRead = decode(input, params)?;
-                let branch = self.branch_path(&grant, p.branch_id.as_deref())?;
-                encode(output, self.host.read(&grant, &p, branch.as_deref())?)
+                if p.path.starts_with(crate::tool_results::RESULT_PREFIX) {
+                    encode(output, self.store.read_result_artifact(&grant, &p)?)
+                } else if p.path.starts_with(crate::export_files::EXPORT_PREFIX) {
+                    encode(output, self.store.read_export_artifact(&grant, &p)?)
+                } else {
+                    encode(output, self.read_artifact_context(&grant, &p)?)
+                }
             }
             "action.execute" => encode(output, self.execute(run_id, decode(input, params)?)?),
+            "artifact.validity" => encode(
+                output,
+                self.artifact_validity(&grant, &decode(input, params)?)?,
+            ),
             "action.lookup" => {
                 let p: IdRequest = decode(input, params)?;
                 encode(output, self.lookup(run_id, &p.id)?)
             }
             "record.submit" => {
-                let submission: RecordSubmission = decode(input, params)?;
+                let mut submission: RecordSubmission = decode(input, params)?;
+                self.store
+                    .complete_motif_context(&grant, run_id, &mut submission)?;
+                self.store
+                    .inherit_context_sources(run_id, &mut submission)?;
                 if crate::validation::split_level(&submission.provenance.split)
                     < crate::validation::split_level(&crate::validation::derived_split(
                         &grant.visible_splits,
@@ -100,6 +232,14 @@ impl Runtime {
             "record.retire" => {
                 self.store.retire(&grant, &decode(input, params)?)?;
                 Ok(json!({"ok":true}))
+            }
+            "work.wait" => encode(
+                output,
+                self.store.wait_for_work(run_id, &decode(input, params)?)?,
+            ),
+            "work.status" => {
+                let request: IdRequest = decode(input, params)?;
+                encode(output, self.store.work_status(run_id, &request.id)?)
             }
             "work.request" => encode(
                 output,

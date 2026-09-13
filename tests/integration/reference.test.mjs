@@ -27,6 +27,14 @@ test('context reduction preserves the latest assistant/tool exchange',()=>{
   const messages=[user,{role:'assistant',content:[{type:'text',text:'x'.repeat(10000)}]},assistant,result];const reduced=boundedContext(messages,1000);assert.equal(reduced[0],user);assert.deepEqual(reduced.slice(-2),[assistant,result]);
 });
 
+test('context reduction refuses an oversized owner task or required tool exchange', () => {
+  const user = { role: 'user', content: 'owner task', timestamp: 1 };
+  const assistant = { role: 'assistant', content: [{ type: 'toolCall', id: 'one', name: 'record_read', arguments: {} }] };
+  const result = { role: 'toolResult', toolCallId: 'one', toolName: 'record_read', content: [{ type: 'text', text: 'observed content'.repeat(1000) }] };
+  assert.throws(() => boundedContext([user, assistant, result], 1000), /required protocol exchange exceeds/);
+  assert.throws(() => boundedContext([{ ...user, content: 'task'.repeat(1000) }, assistant], 1000), /required protocol exchange exceeds/);
+});
+
 test('reference check rejects absent and nonnumeric totals and inherited unit names', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ribosome-check-'));
   try {

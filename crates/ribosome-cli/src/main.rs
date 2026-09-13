@@ -1,3 +1,4 @@
+use ribosome_core::agent_evaluator::{AgentEvaluator, AgentEvaluatorConfig};
 use ribosome_core::attachments::{AttachmentHost, AttachmentPolicy};
 use ribosome_core::experiments::{AdmissionPolicy, CommandEvaluator, EvaluationCase};
 use ribosome_core::{
@@ -29,9 +30,13 @@ struct RunConfig {
     #[serde(default)]
     evaluators: BTreeMap<String, CommandEvaluator>,
     #[serde(default)]
+    agent_evaluators: BTreeMap<String, AgentEvaluatorConfig>,
+    #[serde(default)]
     cases: Vec<EvaluationCase>,
     #[serde(default)]
     policies: Vec<AdmissionPolicy>,
+    #[serde(default)]
+    corpora: Vec<DiscoveryCorpus>,
     #[serde(default)]
     attachment: AttachmentPolicy,
 }
@@ -48,7 +53,7 @@ async fn command() -> Result<()> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     match args.first().map(String::as_str) {
         None | Some("help") | Some("--help") => println!(
-            "Ribosome 0.1.0\n\n  ribosome init DIRECTORY\n  ribosome run CONFIG.json\n  ribosome host CONFIG.json\n  ribosome inspect DATABASE RUN_ID\n  ribosome ingest DATABASE EVENTS.json\n  ribosome records CONFIG.json RECORDS.json\n  ribosome search CONFIG.json QUERY.json\n  ribosome validate CONTRACT VALUE.json\n\nrun explicitly starts a supervised Pi worker. Ctrl-C cancels it.\nhost explicitly serves ribosome-host/1 over stdio until EOF or Ctrl-C.\nRepeat an interrupted run's unchanged config to reconcile and resume.\nConfiguration and evidence are JSON. Diagnostics go to stderr."
+            "Ribosome 0.1.0\n\n  ribosome init DIRECTORY\n  ribosome run CONFIG.json\n  ribosome host CONFIG.json\n  ribosome study CONFIG.json EXPERIMENT_ID\n  ribosome inspect DATABASE RUN_ID\n  ribosome effect CONFIG.json OPERATION_ID\n  ribosome settle CONFIG.json SETTLEMENT.json\n  ribosome ingest DATABASE EVENTS.json\n  ribosome records CONFIG.json RECORDS.json\n  ribosome search CONFIG.json QUERY.json\n  ribosome validate CONTRACT VALUE.json\n\nrun explicitly starts a supervised Pi worker. Ctrl-C cancels it.\nhost explicitly serves ribosome-host/1 over stdio until EOF or Ctrl-C.\nRepeat an interrupted run's unchanged config to reconcile and resume.\nConfiguration and evidence are JSON. Diagnostics go to stderr."
         ),
         Some("init") => {
             let directory = PathBuf::from(argument(&args, 1)?);
@@ -119,7 +124,22 @@ async fn command() -> Result<()> {
                 serde_json::to_string_pretty(&store.search(&config.grant, &query)?)?
             );
         }
-        Some("run") | Some("host") => {
+        Some("effect") | Some("settle") => {
+            let config: RunConfig = serde_json::from_value(read_json(argument(&args, 1)?)?)?;
+            let host = LocalHost::new(&config.workspace, config.tools)?;
+            let store = Store::open(config.state_dir.join("ribosome.db"))?;
+            let runtime = Runtime::new(store, Box::new(host), &config.state_dir)?;
+            let result = if args[0] == "effect" {
+                serde_json::to_value(runtime.inspect_effect(&config.grant, argument(&args, 2)?)?)?
+            } else {
+                serde_json::to_value(runtime.settle_effect(
+                    &config.grant,
+                    &decode("EffectSettlementRequest", read_json(argument(&args, 2)?)?)?,
+                )?)?
+            };
+            println!("{}", serde_json::to_string_pretty(&result)?);
+        }
+        Some("run") | Some("host") | Some("study") => {
             let config: RunConfig = serde_json::from_value(read_json(argument(&args, 1)?)?)?;
             if config.request.checkpoint.is_some() {
                 return Err(Error::invalid(
@@ -131,18 +151,16 @@ async fn command() -> Result<()> {
             let store = Store::open(config.state_dir.join("ribosome.db"))?;
             store.register_grant(&config.grant)?;
             let mut runtime = Runtime::new(store, Box::new(host), &config.state_dir)?;
+            for corpus in &config.corpora {
+                runtime
+                    .store
+                    .register_discovery_corpus(&config.grant, corpus)?;
+            }
             for (name, evaluator) in config.evaluators {
                 runtime
                     .laboratory
                     .register_evaluator(name, Box::new(evaluator))?;
             }
-            for case in config.cases {
-                runtime.laboratory.register_case(case)?;
-            }
-            for policy in config.policies {
-                runtime.laboratory.register_policy(policy)?;
-            }
-            let supervisor = Supervisor::new(runtime, 1)?;
             let mut environment = BTreeMap::new();
             let keys: &[&str] = match config.request.provider.as_str() {
                 "openai" => &["OPENAI_API_KEY"],
@@ -166,6 +184,69 @@ async fn command() -> Result<()> {
                 worker: config.worker,
                 environment,
             };
+            for (name, evaluator) in config.agent_evaluators {
+                if evaluator.provider != config.request.provider {
+                    return Err(Error::invalid(
+                        "CLI agent evaluators use the configured worker provider",
+                    ));
+                }
+                runtime.laboratory.register_evaluator(
+                    name,
+                    Box::new(AgentEvaluator {
+                        config: evaluator,
+                        worker: worker.clone(),
+                    }),
+                )?;
+            }
+            for case in config.cases {
+                runtime.laboratory.register_case(case)?;
+            }
+            for policy in config.policies {
+                runtime.laboratory.register_policy(policy)?;
+            }
+            if args[0] == "study" {
+                let experiment_id = argument(&args, 2)?.to_owned();
+                if config.request.profile != Profile::Experimenter
+                    || config.request.operator != "experiment@1"
+                {
+                    return Err(Error::invalid("study requires an experimenter request"));
+                }
+                let cancellation = runtime.cancellation(&config.request.run_id);
+                let signal = tokio::spawn(async move {
+                    if tokio::signal::ctrl_c().await.is_ok() {
+                        cancellation.store(true, std::sync::atomic::Ordering::SeqCst);
+                    }
+                });
+                let result = tokio::task::spawn_blocking(move || -> Result<ExperimentResult> {
+                    runtime.store.begin_run(
+                        &config.request.run_id,
+                        &config.grant.id,
+                        &config.request,
+                    )?;
+                    let result = runtime.run_experiment(&config.request.run_id, &experiment_id);
+                    runtime.store.finish_run(
+                        &config.request.run_id,
+                        &AgentResult {
+                            disposition: if result.is_ok() {
+                                Disposition::Completed
+                            } else {
+                                Disposition::Failed
+                            },
+                            summary: result
+                                .as_ref()
+                                .map(|r| r.summary.clone())
+                                .unwrap_or_else(|e| e.message.clone()),
+                        },
+                    )?;
+                    result
+                })
+                .await
+                .map_err(|_| Error::internal("study executor failed"))?;
+                signal.abort();
+                println!("{}", serde_json::to_string_pretty(&result?)?);
+                return Ok(());
+            }
+            let supervisor = Supervisor::new(runtime, 1)?;
             let (cancel, receiver) = tokio::sync::watch::channel(false);
             let signal = tokio::spawn(async move {
                 if tokio::signal::ctrl_c().await.is_ok() {

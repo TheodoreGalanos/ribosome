@@ -1,0 +1,440 @@
+{
+  "source": {
+    "commit": "ad8af351763f2154995b7c33b52ec2544c733a2e",
+    "working_tree_modified": true,
+    "scope": "Current local working tree. Uncommitted changes are not identified by the commit alone."
+  },
+  "runtime": {
+    "node": "v26.4.0",
+    "rust_toolchain": "1.96.0",
+    "package_lock_version": 3,
+    "dependencies": {
+      "@earendil-works/pi-agent-core": "0.85.1",
+      "@earendil-works/pi-ai": "0.85.1",
+      "ajv": "8.20.0",
+      "typebox": "1.3.7"
+    },
+    "rust_lock": "Cargo.lock",
+    "npm_lock": "package-lock.json",
+    "schema_version": 21,
+    "protocols": [
+      "ribosome/1",
+      "ribosome-host/1"
+    ]
+  },
+  "configuration": {
+    "provider_settings": "Private local environment; deliberately omitted",
+    "operators": [
+      "discovery@1",
+      "extraction@1",
+      "execute-motif@1",
+      "experiment@1"
+    ],
+    "recipient_tools": "Granted artifact reads, branches and edits; offline protected judge",
+    "starting_definitions": 0,
+    "maximum_calls": 160,
+    "maximum_cost_microusd": "1000000",
+    "matrix": {
+      "cases": 2,
+      "repetitions": 1,
+      "arms": [
+        "baseline",
+        "candidate"
+      ]
+    }
+  },
+  "partitions": [
+    {
+      "role": "discovery",
+      "family": "authored-source-reconciliation",
+      "split": "development",
+      "episodes": 4,
+      "source": "Actual file observations from authored donor decisions, including benign and failed-global episodes"
+    },
+    {
+      "role": "recipient",
+      "family": "recipient-reconciliation",
+      "split": "development",
+      "cases": 2,
+      "limitation": "Related authored mechanism; not independent protected transfer"
+    },
+    {
+      "role": "R6 recheck",
+      "split": "development",
+      "cases": 4,
+      "limitation": "Previously exposed protected cases, retained as development evidence"
+    }
+  ],
+  "mechanical": {
+    "status": "passed",
+    "full_suite_run": false,
+    "checks": [
+      {
+        "id": "rust-build",
+        "status": "passed",
+        "elapsed_ms": 458,
+        "exit_code": 0
+      },
+      {
+        "id": "typescript-build",
+        "status": "passed",
+        "elapsed_ms": 2947,
+        "exit_code": 0
+      },
+      {
+        "id": "generated-contracts",
+        "status": "passed",
+        "elapsed_ms": 282,
+        "exit_code": 0
+      },
+      {
+        "id": "schema-migrations",
+        "status": "passed",
+        "elapsed_ms": 6133,
+        "exit_code": 0
+      },
+      {
+        "id": "upgrade-rollback-newer-schema",
+        "status": "passed",
+        "elapsed_ms": 2692,
+        "exit_code": 0
+      },
+      {
+        "id": "managed-exports",
+        "status": "passed",
+        "elapsed_ms": 4084,
+        "exit_code": 0
+      },
+      {
+        "id": "aggregate-accounting",
+        "status": "passed",
+        "elapsed_ms": 3224,
+        "exit_code": 0
+      },
+      {
+        "id": "contextual-admission",
+        "status": "passed",
+        "elapsed_ms": 3094,
+        "exit_code": 0
+      },
+      {
+        "id": "protected-exposure",
+        "status": "passed",
+        "elapsed_ms": 1423,
+        "exit_code": 0
+      },
+      {
+        "id": "typed-invocation",
+        "status": "passed",
+        "elapsed_ms": 5383,
+        "exit_code": 0
+      },
+      {
+        "id": "compaction-interrupted-effect",
+        "status": "passed",
+        "elapsed_ms": 5303,
+        "exit_code": 0
+      },
+      {
+        "id": "bridge-errors-cancellation",
+        "status": "passed",
+        "elapsed_ms": 3702,
+        "exit_code": 0
+      },
+      {
+        "id": "integrated-recovery",
+        "status": "passed",
+        "elapsed_ms": 6270,
+        "exit_code": 0
+      },
+      {
+        "id": "qualification-reporting",
+        "status": "passed",
+        "elapsed_ms": 5577,
+        "exit_code": 0
+      },
+      {
+        "id": "current-store-upgrade",
+        "status": "passed",
+        "elapsed_ms": 15752,
+        "exit_code": 0
+      }
+    ]
+  },
+  "installed": {
+    "status": "passed",
+    "model_calls_in_smoke_tests": 0,
+    "distinct_tests": 22,
+    "prepared_invocation": "passed"
+  },
+  "model_backed": {
+    "status": "discovery_incomplete",
+    "qualification": "incomplete",
+    "planned_evaluations": 4,
+    "candidate": null,
+    "discovery_records": {
+      "definitions": [],
+      "occurrences": [],
+      "investigations": [
+        "01a099ec-c3ad-7813-b657-a90c6d2765dd"
+      ]
+    },
+    "usage": {
+      "calls": 7,
+      "known_cost_microusd": 17447,
+      "unknown_calls": 0
+    },
+    "study": {
+      "decision": "unknown",
+      "complete": null,
+      "usage_complete": null,
+      "planned_evaluations": null,
+      "cases": null,
+      "families": null,
+      "repetitions": null,
+      "arms": [],
+      "comparisons": [],
+      "online_usage": null,
+      "learning_cost": null,
+      "uncertainty_method": "Paired case percentile bootstrap, 2000 resamples, 95%; repetitions averaged within cases; fewer than two cases has no interval."
+    }
+  },
+  "whole_agent_development_comparison": {
+    "decision": "inconclusive",
+    "complete": false,
+    "usage_complete": true,
+    "planned_evaluations": 20,
+    "cases": 4,
+    "families": 2,
+    "repetitions": 1,
+    "arms": [
+      {
+        "arm": "baseline",
+        "planned": 4,
+        "observed": 4,
+        "verified_successes": 3,
+        "verified_success_rate": 0.75
+      },
+      {
+        "arm": "candidate",
+        "planned": 4,
+        "observed": 2,
+        "verified_successes": 2,
+        "verified_success_rate": 0.5
+      },
+      {
+        "arm": "care",
+        "planned": 4,
+        "observed": 3,
+        "verified_successes": 2,
+        "verified_success_rate": 0.5
+      },
+      {
+        "arm": "critique",
+        "planned": 4,
+        "observed": 4,
+        "verified_successes": 3,
+        "verified_success_rate": 0.75
+      },
+      {
+        "arm": "retry",
+        "planned": 4,
+        "observed": 4,
+        "verified_successes": 3,
+        "verified_success_rate": 0.75
+      }
+    ],
+    "comparisons": [
+      {
+        "treatment": "candidate",
+        "control": "baseline",
+        "paired_cases": 2,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "care",
+        "control": "baseline",
+        "paired_cases": 3,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "critique",
+        "control": "baseline",
+        "paired_cases": 4,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "retry",
+        "control": "baseline",
+        "paired_cases": 4,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "candidate",
+        "control": "retry",
+        "paired_cases": 2,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "candidate",
+        "control": "critique",
+        "paired_cases": 2,
+        "mean_difference": 0,
+        "interval_95": {
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      {
+        "treatment": "candidate",
+        "control": "care",
+        "paired_cases": 1,
+        "mean_difference": 0,
+        "interval_95": null
+      }
+    ],
+    "online_usage": {
+      "model_calls": 186,
+      "tokens": null,
+      "cost_microusd": null,
+      "actions": 66
+    },
+    "learning_cost": {
+      "cost_microusd": "44441",
+      "reuse_count": 1,
+      "complete": false
+    },
+    "uncertainty_method": "Paired case percentile bootstrap, 2000 resamples, 95%; repetitions averaged within cases; fewer than two cases has no interval."
+  },
+  "budget_allocations": [
+    {
+      "id": "allocation-1",
+      "parent_id": null,
+      "purpose": "root",
+      "disposition": "open",
+      "budget": {
+        "max_calls": 160,
+        "max_tokens": "10000000",
+        "max_cost_microusd": "1000000",
+        "max_actions": 80
+      }
+    },
+    {
+      "id": "allocation-2",
+      "parent_id": "allocation-1",
+      "purpose": "curator",
+      "disposition": "completed",
+      "budget": {
+        "max_calls": 160,
+        "max_tokens": "10000000",
+        "max_cost_microusd": "1000000",
+        "max_actions": 80
+      }
+    }
+  ],
+  "selected_receipts": {
+    "source": "R6 retained campaign",
+    "observations": [
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "failed",
+        "outcome_basis": "unknown",
+        "restored_properties": 0
+      },
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "edit",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      },
+      {
+        "kind": "branch",
+        "status": "succeeded",
+        "outcome_basis": "execution_established",
+        "restored_properties": 0
+      }
+    ]
+  },
+  "limitations": [
+    "Mechanical/provider fixtures are separate from live capability results.",
+    "No universal reliability, causal benefit or useful learned archive diversity claim.",
+    "Full Linux/macOS CI and package publication were not performed in this R7 run.",
+    "Private configurations, donor transcripts, hidden answers and model reasoning are omitted.",
+    "Missing reports and unknown usage remain unknown; this bundle cannot certify absent evidence.",
+    "R6 usage in this bundle covers the selected development recheck; earlier campaign attempts remain in the validation report."
+  ]
+}

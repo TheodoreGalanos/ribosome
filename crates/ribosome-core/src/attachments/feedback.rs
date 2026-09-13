@@ -70,7 +70,7 @@ impl Store {
                 AttachmentFeedbackKind::Finding
             },
             state: FeedbackState::Pending,
-            summary: result.summary.clone(),
+            summary: self.run_result_for_delivery(&work.id)?.summary,
             disposition: result.disposition.clone(),
             record_refs: refs,
             evidence_refs: work.evidence_refs.clone(),
@@ -111,9 +111,11 @@ impl Store {
     }
 
     fn save_feedback(&self, feedback: &AttachmentFeedback) -> Result<()> {
+        // Delivery changes status only. Source cleanup may have removed the
+        // summary since this object was read; never write that copy back.
         self.db.execute(
-            "UPDATE attachment_feedback SET body=?2 WHERE id=?1",
-            params![feedback.id, serde_json::to_string(feedback)?],
+            "UPDATE attachment_feedback SET body=json_set(body,'$.state',?2,'$.attempts',?3,'$.detail',?4) WHERE id=?1",
+            params![feedback.id, serde_json::to_value(&feedback.state)?.as_str(), feedback.attempts, feedback.detail],
         )?;
         Ok(())
     }
@@ -198,6 +200,10 @@ impl Runtime {
         let a = self.store.attachment(&f.attachment_id)?;
         let grant = self.store.grant(&a.grant_id)?;
         if a.state != AttachmentState::Active || now_ms() >= counter(&f.expires_ms)? {
+            return Ok(false);
+        }
+        self.refresh_artifact_sources(&grant)?;
+        if !self.store.run_result_available(&f.run_id)? {
             return Ok(false);
         }
         for reference in &f.record_refs {
