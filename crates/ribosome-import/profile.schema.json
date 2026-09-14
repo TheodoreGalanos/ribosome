@@ -1,0 +1,402 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ribosome trajectory ImportProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile_version": {
+      "const": "1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "input": {
+      "$ref": "#/$defs/input"
+    },
+    "assemble": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/join"
+          }
+        }
+      },
+      "required": [
+        "base",
+        "as",
+        "joins"
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "task": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "family": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "decoder": {
+          "$ref": "#/$defs/decoder"
+        }
+      },
+      "required": [
+        "id",
+        "task",
+        "decoder"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    }
+  },
+  "required": [
+    "profile_version",
+    "id",
+    "version",
+    "input",
+    "assemble",
+    "episode",
+    "metadata",
+    "annotations",
+    "policy"
+  ],
+  "$defs": {
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config": {
+          "type": "string",
+          "minLength": 1
+        },
+        "split": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "encoding": {
+          "enum": [
+            "json",
+            "jsonl",
+            "jsonl-gzip",
+            "parquet"
+          ]
+        },
+        "rows_pointer": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        }
+      },
+      "required": [
+        "name",
+        "encoding"
+      ]
+    },
+    "join": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as": {
+          "type": "string",
+          "minLength": 1
+        },
+        "left": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "right": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "cardinality": {
+          "enum": [
+            "one_to_one",
+            "many_to_one"
+          ]
+        },
+        "missing": {
+          "const": "quarantine"
+        },
+        "duplicates": {
+          "const": "error"
+        }
+      },
+      "required": [
+        "table",
+        "as",
+        "left",
+        "right",
+        "cardinality",
+        "missing",
+        "duplicates"
+      ]
+    },
+    "decoder": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "aec-jsonl-v1",
+            "chat-messages-v1",
+            "chat-jsonl-v1"
+          ]
+        },
+        "field": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "value_encoding": {
+          "enum": [
+            "array",
+            "json_string",
+            "jsonl_string"
+          ]
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "enum": [
+                "chat-messages-v1",
+                "chat-jsonl-v1"
+              ]
+            },
+            "field": {
+              "type": "string",
+              "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+            },
+            "value_encoding": {
+              "enum": [
+                "array",
+                "json_string",
+                "jsonl_string"
+              ]
+            },
+            "on": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "missing",
+                  "null",
+                  "empty",
+                  "header_only"
+                ]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            }
+          },
+          "required": [
+            "name",
+            "field",
+            "value_encoding",
+            "on"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "field",
+        "value_encoding"
+      ]
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "huggingface",
+            "local"
+          ]
+        },
+        "dataset": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "pinned_files",
+            "viewer_snapshot",
+            "local_snapshot"
+          ]
+        },
+        "pin_before_read": {
+          "type": "boolean"
+        },
+        "credential_env": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/table"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "kind",
+        "mode",
+        "tables"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "huggingface"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "dataset",
+              "revision",
+              "pin_before_read"
+            ],
+            "properties": {
+              "pin_before_read": {
+                "const": true
+              },
+              "mode": {
+                "enum": [
+                  "pinned_files",
+                  "viewer_snapshot"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "local"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "const": "local_snapshot"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unknown_fields": {
+          "const": "retain_owner_only"
+        },
+        "unknown_roles": {
+          "const": "retain_opaque"
+        },
+        "malformed_episode": {
+          "const": "quarantine"
+        },
+        "missing_tool_result": {
+          "const": "preserve_pending"
+        },
+        "invalid_tool_arguments": {
+          "const": "preserve_raw"
+        },
+        "duplicate_episode": {
+          "const": "exact_noop_conflict_error"
+        },
+        "embedded_code": {
+          "const": "never_execute"
+        },
+        "linked_artifacts": {
+          "const": "never_fetch"
+        },
+        "source_authority": {
+          "const": "external_record"
+        },
+        "actor_projection": {
+          "const": "decoder_allowlist"
+        },
+        "metadata_channel": {
+          "const": "owner_only"
+        },
+        "annotations_channel": {
+          "const": "evaluator_only"
+        }
+      },
+      "required": [
+        "unknown_fields",
+        "unknown_roles",
+        "malformed_episode",
+        "missing_tool_result",
+        "invalid_tool_arguments",
+        "duplicate_episode",
+        "embedded_code",
+        "linked_artifacts",
+        "source_authority",
+        "actor_projection",
+        "metadata_channel",
+        "annotations_channel"
+      ]
+    }
+  }
+}

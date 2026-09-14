@@ -14,9 +14,14 @@ impl Store {
                 "nested prepared invocation is not supported; the host must schedule a separately scoped invocation",
             ));
         }
-        if grant.discovery_corpus.is_some() && request.profile != Profile::Curator {
+        if grant.discovery_corpus.is_some()
+            && !crate::discovery_corpus::corpus_operator_allowed(
+                &request.profile,
+                &request.operator,
+            )
+        {
             return Err(Error::denied(
-                "assigned discovery can request only curator work within its corpus",
+                "assigned evidence permits curator work and caretaker proofreading within its corpus",
             ));
         }
         if self.run_attachment(run_id)?.is_some_and(|a| {

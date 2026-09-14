@@ -1,0 +1,91 @@
+{
+  "date": "2026-09-13",
+  "base_commit": "12e87e74c81d38da507d545a43a80815be1d310b",
+  "implementation": "uncommitted working tree",
+  "sources": [
+    {
+      "source": "aec-bench/release-model-rollouts",
+      "revision": "d46e5defae9167f0635260196fd6abf6432554ec",
+      "episodes": 6,
+      "messages": 12,
+      "tool_calls": 0,
+      "paired_results": 0,
+      "pending_calls": 0,
+      "original_timestamps": 12
+    },
+    {
+      "source": "nebius/SWE-rebench-openhands-trajectories",
+      "revision": "35455389ab51bf5e2306bfd436ef72d0f98bf882",
+      "episodes": 6,
+      "messages": 870,
+      "tool_calls": 432,
+      "paired_results": 426,
+      "pending_calls": 6,
+      "original_timestamps": 0
+    }
+  ],
+  "stages": [
+    {
+      "stage": "aec-audit",
+      "status": "infrastructure_error",
+      "disposition": null,
+      "saved_kinds": []
+    },
+    {
+      "stage": "aec-audit",
+      "status": "finished",
+      "disposition": "completed",
+      "saved_kinds": [
+        "finding"
+      ]
+    },
+    {
+      "stage": "nebius-discovery",
+      "status": "incomplete",
+      "disposition": "completed",
+      "saved_kinds": []
+    },
+    {
+      "stage": "nebius-discovery",
+      "status": "incomplete",
+      "disposition": "abstained",
+      "saved_kinds": []
+    },
+    {
+      "stage": "nebius-discovery",
+      "status": "incomplete",
+      "disposition": "exhausted",
+      "saved_kinds": [
+        "definition"
+      ]
+    },
+    {
+      "stage": "aec-prefix",
+      "status": "incomplete",
+      "disposition": "failed",
+      "saved_kinds": []
+    },
+    {
+      "stage": "aec-prefix",
+      "status": "finished",
+      "disposition": "completed",
+      "saved_kinds": [
+        "finding"
+      ]
+    }
+  ],
+  "usage": {
+    "calls": 100,
+    "known_cost_microusd": 706080,
+    "unknown_calls": 1,
+    "unresolved_reserved_cost_microusd": 70856
+  },
+  "qualification": "not_established",
+  "unexecuted": [
+    "plain_transcript_comparison",
+    "contrast",
+    "extraction",
+    "fresh_function",
+    "system_benefit"
+  ]
+}

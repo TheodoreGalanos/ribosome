@@ -149,13 +149,18 @@ impl Store {
         self.save_record_for_run(record, expected, None)
     }
 
-    fn save_record_for_run(
+    pub(crate) fn save_record_for_run(
         &self,
         record: &RecordEnvelope,
         expected: Option<&str>,
         run_id: Option<&str>,
     ) -> Result<()> {
-        let tx = self.write_transaction()?;
+        let tx = self
+            .db
+            .is_autocommit()
+            .then(|| self.write_transaction())
+            .transpose()?;
+        let db = &self.db;
         let body = serde_json::to_string(record)?;
         let kind = serde_json::to_value(&record.kind)?
             .as_str()
@@ -166,28 +171,30 @@ impl Store {
             .unwrap()
             .to_owned();
         if let Some(expected) = expected {
-            if tx.execute(
+            if db.execute(
                 "UPDATE records SET version=?2,body=?3 WHERE id=?1 AND version=?4",
                 params![record.id, record.version, body, expected],
             )? != 1
             {
                 return Err(Error::conflict("record changed concurrently"));
             }
-            tx.execute("DELETE FROM record_search WHERE id=?1", [&record.id])?;
+            db.execute("DELETE FROM record_search WHERE id=?1", [&record.id])?;
         } else {
-            tx.execute("INSERT INTO records(id,client,project,kind,version,split,body) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![record.id,record.scope.client,record.scope.project,kind,record.version,split,body])?;
+            db.execute("INSERT INTO records(id,client,project,kind,version,split,body) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![record.id,record.scope.client,record.scope.project,kind,record.version,split,body])?;
         }
         if !record.retired {
-            tx.execute(
+            db.execute(
                 "INSERT INTO record_search(id,content) VALUES (?1,?2)",
                 params![record.id, serde_json::to_string(&record.body)?],
             )?;
         }
-        crate::sources::record_sources(&tx, record)?;
+        crate::sources::record_sources(db, record)?;
         if let Some(run_id) = run_id {
-            tx.execute("INSERT OR IGNORE INTO attachment_records(run_id,record_id) SELECT ?1,?2 WHERE EXISTS(SELECT 1 FROM attachment_work WHERE work_id=?1)", params![run_id,record.id])?;
+            db.execute("INSERT OR IGNORE INTO attachment_records(run_id,record_id) SELECT ?1,?2 WHERE EXISTS(SELECT 1 FROM attachment_work WHERE work_id=?1)", params![run_id,record.id])?;
         }
-        tx.commit()?;
+        if let Some(tx) = tx {
+            tx.commit()?;
+        }
         Ok(())
     }
 

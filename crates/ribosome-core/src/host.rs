@@ -29,7 +29,7 @@ pub struct RegisteredTool {
     #[serde(default)]
     pub writes: Vec<String>,
     /// Additional checker code or configuration dependencies. The executable
-    /// and absolute file arguments are fingerprinted automatically.
+    /// and absolute file arguments are tracked by size and modification time.
     #[serde(default)]
     pub code_files: Vec<PathBuf>,
     /// Host-authorized coverage of exact obligation versions on task artifacts.
@@ -403,8 +403,9 @@ impl HostAdapter for LocalHost {
             .tools
             .get(name)
             .ok_or_else(|| Error::missing("checker is no longer registered"))?;
-        let mut digest = Sha256::new();
-        digest.update(serde_json::to_vec(tool)?);
+        use std::hash::{Hash, Hasher};
+        let mut version = std::collections::hash_map::DefaultHasher::new();
+        serde_json::to_string(tool)?.hash(&mut version);
         let paths = std::iter::once(tool.program.clone())
             .chain(
                 tool.args
@@ -415,31 +416,15 @@ impl HostAdapter for LocalHost {
             .chain(tool.code_files.iter().cloned())
             .collect::<std::collections::BTreeSet<_>>();
         for path in paths {
-            let mut file = File::open(&path)?;
-            const MAX_CODE: u64 = 256 * 1024 * 1024;
-            if !file.metadata()?.is_file() || file.metadata()?.len() > MAX_CODE {
-                return Err(Error::invalid(
-                    "checker code must be a regular file of at most 256 MiB",
-                ));
+            let metadata = fs::metadata(&path)?;
+            if !metadata.is_file() {
+                return Err(Error::invalid("checker dependency must be a regular file"));
             }
-            digest.update(serde_json::to_vec(&path)?);
-            let mut contents = Sha256::new();
-            let mut buffer = [0u8; 65536];
-            let mut bytes = 0u64;
-            loop {
-                let count = file.read(&mut buffer)?;
-                if count == 0 {
-                    break;
-                }
-                bytes += count as u64;
-                if bytes > MAX_CODE {
-                    return Err(Error::invalid("checker code grew beyond its size limit"));
-                }
-                contents.update(&buffer[..count]);
-            }
-            digest.update(contents.finalize());
+            path.hash(&mut version);
+            metadata.len().hash(&mut version);
+            metadata.modified()?.hash(&mut version);
         }
-        Ok(format!("sha256:{:x}", digest.finalize()))
+        Ok(format!("local-metadata:{:016x}", version.finish()))
     }
 
     fn run_tool(

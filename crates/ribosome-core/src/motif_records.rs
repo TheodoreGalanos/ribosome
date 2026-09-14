@@ -19,6 +19,17 @@ impl Store {
     ) -> Result<()> {
         match submission.kind {
             RecordKind::Discovery => {
+                let owned_work: bool = self.db.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM work WHERE id=?1 AND grant_id=?2)",
+                    params![run, grant.id],
+                    |row| row.get(0),
+                )?;
+                if owned_work {
+                    submission
+                        .body
+                        .entry("work_ref")
+                        .or_insert_with(|| Value::String(run.into()));
+                }
                 submission
                     .body
                     .entry("run_refs")
@@ -246,7 +257,7 @@ impl Store {
                     )?;
                     if !owned || run.is_some_and(|run| run != work) {
                         return Err(Error::denied(
-                            "discovery work must be the submitting run's owned work item",
+                            "work_ref must identify this run's owned work item; omit work_ref for a directly started run",
                         ));
                     }
                 }

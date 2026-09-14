@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ribosome-core", "crates/ribosome-cli"]
+members = ["crates/ribosome-core", "crates/ribosome-cli", "crates/ribosome-import"]
 resolver = "2"
 
 [workspace.package]
@@ -18,3 +18,8 @@ jsonschema = { version = "=0.41.0", default-features = false }
 thiserror = "=2.0.18"
 tempfile = "=3.24.0"
 libc = "=0.2.189"
+
+# Long-history integration tests exercise the supervisor as a running service.
+# Keep debug assertions while avoiding unoptimized traversal overhead.
+[profile.dev.package.ribosome-core]
+opt-level = 1

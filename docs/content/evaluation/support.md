@@ -27,7 +27,11 @@ The combined recovery check applied a repair, interrupted its bookkeeping, resum
 
 These are recorded implementation checks. See the [validation report](../../validation.md#r7-integrated-qualification-and-handoff) and [sanitized evidence snapshot](../../qualification/evidence.json) for their source state and results.
 
-## Live learning results
+The [instruction lifecycle example](../../../examples/learned-behavior/README.md#revise-and-reuse-a-known-instruction) connects revision, evaluation, admission, memory, retrieval and execution in one check. A faulty row-reconciliation rule fails a case, a revised rule passes both cases, and a later agent uses it while preserving independent work. A units counterexample then triggers withdrawal. The check confirms that the instruction and its linked memory leave retrieval and that Rust refuses another production invocation. Provider responses are authored; Pi execution and Rust state changes are real.
+
+The external-trajectory campaign also exposed a contrast access bug: checks on a definition's supporting files blocked its delivery and later cleared the reviewer's context. The corrected path checks source availability while keeping donor files outside the review assignment. A regression now covers reading, retrieval, continued context and withdrawal. The live rerun completed with one context segment and saved a rejected match against the inspected GeoPandas excerpts. The [external-data pilot](../../../examples/offline-lab/expanded-results.md) is closed, with its broader system comparison deferred after a negative function result.
+
+## Recorded R7 live trials
 
 | Trial | Observed result |
 | --- | --- |

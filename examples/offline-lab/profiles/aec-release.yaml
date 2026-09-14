@@ -1,0 +1,89 @@
+profile_version: '1'
+id: aec-release
+version: '1'
+input:
+  kind: huggingface
+  dataset: aec-bench/release-model-rollouts
+  revision: main
+  mode: pinned_files
+  pin_before_read: true
+  credential_env: HF_TOKEN
+  tables:
+  - name: artifacts
+    path: data/artifacts/release-00000-of-00001.parquet
+    config: artifacts
+    split: release
+    encoding: parquet
+  - name: rollouts
+    path: data/rollouts/release-00000-of-00001.parquet
+    config: rollouts
+    split: release
+    encoding: parquet
+  - name: tasks
+    path: data/tasks/release-00000-of-00001.parquet
+    config: tasks
+    split: release
+    encoding: parquet
+assemble:
+  base: artifacts
+  as: artifact
+  joins:
+  - table: rollouts
+    as: rollout
+    left: /trial_id
+    right: /trial_id
+    cardinality: one_to_one
+    missing: quarantine
+    duplicates: error
+  - table: tasks
+    as: task
+    left: /task_id
+    right: /task_id
+    cardinality: many_to_one
+    missing: quarantine
+    duplicates: error
+episode:
+  id: /artifact/trial_id
+  task: /artifact/task_id
+  family: /task/template
+  decoder:
+    name: aec-jsonl-v1
+    field: /artifact/trajectory_jsonl
+    value_encoding: jsonl_string
+    fallback:
+      name: chat-jsonl-v1
+      field: /artifact/conversation_jsonl
+      value_encoding: jsonl_string
+      'on':
+      - missing
+      - 'null'
+      - empty
+      - header_only
+metadata:
+  model: /artifact/model
+  repetition: /artifact/repetition
+  domain: /task/domain
+  category: /task/category
+  visibility_level: /task/visibility_level
+  upstream_partition: /rollout/prime_rl_split
+annotations:
+  publisher_reward: /rollout/reward
+  publisher_verifier_completed: /rollout/verifier_completed
+  publisher_breakdown: /rollout/breakdown_json
+  publisher_validity_errors: /rollout/validity_errors_json
+  publisher_output_status: /rollout/output_status
+  end_state_output: /artifact/output_markdown
+  agent_result: /artifact/agent_result_json
+policy:
+  unknown_fields: retain_owner_only
+  unknown_roles: retain_opaque
+  malformed_episode: quarantine
+  missing_tool_result: preserve_pending
+  invalid_tool_arguments: preserve_raw
+  duplicate_episode: exact_noop_conflict_error
+  embedded_code: never_execute
+  linked_artifacts: never_fetch
+  source_authority: external_record
+  actor_projection: decoder_allowlist
+  metadata_channel: owner_only
+  annotations_channel: evaluator_only

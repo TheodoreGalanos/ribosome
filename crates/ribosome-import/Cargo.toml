@@ -1,0 +1,22 @@
+[package]
+name = "ribosome-import"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+default = []
+remote = ["dep:reqwest", "dep:parquet", "dep:bytes"]
+
+[dependencies]
+ribosome-core = { path = "../ribosome-core" }
+serde.workspace = true
+serde_json.workspace = true
+jsonschema.workspace = true
+tempfile.workspace = true
+serde-saphyr = { version = "=1.2.0", default-features = false, features = ["deserialize"] }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "json", "rustls"], optional = true }
+parquet = { version = "=59.3.0", default-features = false, features = ["snap", "zstd", "flate2-zlib-rs", "json"], optional = true }
+bytes = { version = "=1.11.1", optional = true }

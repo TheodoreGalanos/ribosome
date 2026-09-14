@@ -24,7 +24,7 @@ const fixtureFetch = async (input, options) => {
   assert.equal(body.stream, true);
   assert.equal(body.store, false);
   assert.equal(body.tool_choice, 'required', 'An agent turn must use a tool, including finish for its terminal disposition');
-  assert.ok(body.max_output_tokens <= 4096);
+  assert.equal(body.max_output_tokens, body.model === 'reasoning-deployment' ? 16384 : 4096);
   const calls = [
     ['artifact_read', { path: 'report.txt', offset: 0, length: 1000 }],
     ['action_execute', { kind: 'check', tool: 'credential-check' }],

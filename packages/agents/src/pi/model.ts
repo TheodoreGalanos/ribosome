@@ -17,6 +17,11 @@ export function modelTransport(request: AgentRunRequest, streamOverride?: Stream
   else throw new RpcError(-32602, 'supported providers are openai, anthropic and azure-openai-responses');
   const model = models.getModel(request.provider, request.model);
   if (!model) throw new RpcError(-32602, 'model absent from pinned Pi provider catalogue');
+  const configuredOutput = Number(process.env.RIBOSOME_MODEL_MAX_OUTPUT_TOKENS ?? 4096);
+  if (!Number.isInteger(configuredOutput) || configuredOutput < 1 || configuredOutput > 32768) {
+    throw new RpcError(-32602, 'RIBOSOME_MODEL_MAX_OUTPUT_TOKENS must be between 1 and 32768');
+  }
+  const maxOutput = Math.min(configuredOutput, model.maxTokens);
   const environment = streamOverride ? {} : providerEnvironment(request.provider);
 
   return { model, metered(peer: RpcPeer, compactionId?: string) {
@@ -26,7 +31,6 @@ export function modelTransport(request: AgentRunRequest, streamOverride?: Stream
     const streamFn: StreamFn = async (currentModel, context, options) => {
       const callId = randomUUID();
       try {
-        const maxOutput = 4096;
         // UTF-8 bytes provide a deliberately conservative token reservation;
         // observed usage replaces it only after a completed provider response.
         const inputBound = Buffer.byteLength(JSON.stringify(context)) * 2 + 4096;
