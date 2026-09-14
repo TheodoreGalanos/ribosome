@@ -5,7 +5,7 @@ description: "Test a procedure's function or compare complete agent workflows."
 
 # Experiments
 
-The laboratory runs comparisons using cases, evaluators, and acceptance rules supplied by your application. An experimenter can propose a study and interpret its results. The host executes the comparison and writes the evaluation and admission records.
+The laboratory runs comparisons using cases, evaluators, and acceptance rules supplied by your application. An experimenter can propose a study and interpret its results. The host records evaluation evidence; production admission is a separate policy-controlled decision.
 
 For experiments starting from public trajectories, see [External agent records](external-records.md).
 
@@ -57,6 +57,8 @@ An LLM judge needs a host evaluator that accounts for its provider calls through
 
 Start with verified successes out of all planned cases. Then read execution status, usage completeness, case and family counts, and the paired comparisons. System-benefit acceptance requires the declared improvement over every control and complete usage.
 
+A function study can accept a candidate that matches baseline on the tested cases. This establishes local function under the study policy, not a performance improvement or permission for production reuse.
+
 Learning cost records its observed amount, completeness, and declared reuse count. Report it alongside execution cost when assessing the total cost of reuse.
 
-An admission supports one implementation version in a stated context. The archive can retain evaluated alternatives for different conditions, with their full evidence references. [Current support](support.md) summarizes the completed development study and its inconclusive result.
+An admission supports one implementation version in a stated context. The archive can retain evaluated alternatives for different conditions, with their full evidence references. [Current support](support.md) records the live studies, their outcomes and their limits.

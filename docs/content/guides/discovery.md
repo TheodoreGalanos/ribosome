@@ -11,7 +11,7 @@ For example, a task may fail overall even though one worker correctly reconciled
 
 ## Supply the evidence
 
-Capture the source events and artifact versions first. Then register a `DiscoveryCorpus` through `Store::register_discovery_corpus`, or include it in the CLI configuration's `corpora` list. Set `request.discovery_corpus` to its ID.
+Capture the source events and artifact versions first. Then register a `DiscoveryCorpus` through `Store::register_discovery_corpus`, or include it in the CLI configuration's `corpora` list. Set `request.discovery_corpus` to its `{ id, version }` reference.
 
 The corpus selects event windows, historical artifact snapshots, and any definitions the curator may inspect. It also records whether the investigation represents information available during execution or a retrospective view.
 
@@ -35,8 +35,8 @@ The host checks that cited sources were retrieved. The curator supplies the inte
 
 ## Try the learning example
 
-The [installed-consumer example](../../../examples/learned-behavior/README.md) prepares four authored source episodes using actual file operations. Its live path asks a curator to discover behavior, extracts instructions if a candidate is ready, and plans baseline/candidate runs on two recipient cases.
+Start with the [agent-strategy walkthrough](../../../examples/offline-lab/README.md#investigate-an-agent-strategy) to investigate an imported execution, challenge a proposed behavior and test extracted instructions. Its [recorded follow-up](../../../examples/offline-lab/behavior-results.md) includes source excerpts, owner interventions, the instruction and both function studies. With an explicit task contract, candidate and baseline each passed four executions; this establishes local function, not an advantage.
 
-The observed trial stopped after an inconclusive investigation. Use its retained report to understand which stages ran. See [Current support](../evaluation/support.md) for that result and the separate tests of execution machinery.
+The [installed-consumer example](../../../examples/learned-behavior/README.md) is a smaller alternative using authored source episodes. Its earlier R7 live trial stopped after an inconclusive investigation. Both examples make model calls when run live; see [Current support](../evaluation/support.md) for results and limits.
 
 Next: [Reuse a procedure](reuse.md).

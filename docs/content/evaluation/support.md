@@ -5,7 +5,7 @@ description: "Available capabilities and the results of the implementation and l
 
 # Current support
 
-Ribosome is an early-stage local library. The R1–R7 implementation is complete and available from source. Its automated checks and live trials answer different questions: whether the library carries out the work correctly, and whether a model produces useful behavior on the supplied tasks.
+Ribosome is an early-stage local library available from source. Automated checks exercise its mechanics; live studies test what agents accomplish. The results below distinguish them.
 
 ## Available now
 
@@ -15,6 +15,7 @@ Ribosome is an early-stage local library. The R1–R7 implementation is complete
 | Repair and recovery | Cooperative writes, required checks, recorded action outcomes, and owner settlement for uncertain effects. |
 | Runtime | Saved continuations, queued child work, responsive state operations, and shared resource accounting. |
 | Memory | Scoped records, source-aware context, withdrawal, and ranked text retrieval. |
+| External trajectories | Optional local/Hugging Face import, profile-based decoding, coverage reports and assigned evidence windows. |
 | Discovery | Bounded evidence investigation, functional definitions, grounded occurrences, and contrast work. |
 | Prepared behavior | Pi execution of selected instructions on recipient inputs, with capabilities and admission checks. |
 | Laboratory | Isolated agent cases, five-arm system comparisons, protected judging, and contextual admission. |
@@ -51,7 +52,9 @@ A later investigation used a numpydoc execution to identify an agent strategy: i
 
 The first eight configuration-task executions exposed an ambiguous field meaning in the recipient contract. After clarifying that meaning for both conditions, a second eight-execution study passed: candidate and baseline each repaired both applicable trials and preserved the already-correct configuration twice. All outputs met the interface and preserved independent work. The function study accepted the candidate for those local cases; production admission was not requested.
 
-The [behavior results](../../../examples/offline-lab/behavior-results.md) include both attempts, the instruction, source excerpts, owner interventions, case outputs and costs. This demonstrates local function with no measured advantage over baseline. The same follow-up found the earlier path candidate through bounded lexical query reformulation.
+The [behavior results](../../../examples/offline-lab/behavior-results.md) include both attempts, the instruction, source excerpts, owner interventions, case outputs and costs. This demonstrates local function with no measured advantage over baseline. The challenge used later evidence from the same execution, and the shared recipient prompt supplied parts of the strategy; this was not an independent transfer or system-benefit test.
+
+The same follow-up found the earlier path candidate through bounded lexical query reformulation.
 
 ## Earlier R7 live trials
 
