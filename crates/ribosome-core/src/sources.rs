@@ -233,9 +233,9 @@ impl Store {
         sources: impl IntoIterator<Item = (String, String)>,
     ) -> Result<()> {
         let sources: Vec<_> = sources.into_iter().collect();
-        // Corpus selection controls delivered roots. Pinned definitions may
-        // depend on donor evidence the curator cannot open; ordinary ancestry
-        // availability and split checks still apply below.
+        // Corpus selection controls delivered roots. Their retained results
+        // also capture donor ancestry, whose availability and split still
+        // matter without granting access to open those donor files.
         self.require_discovery_sources(grant, &sources)?;
         self.require_prepared_sources(grant, &sources)?;
         let roots: HashSet<_> = sources.iter().cloned().collect();
@@ -277,7 +277,7 @@ impl Store {
                 "artifact" => self.require_artifact_source(
                     grant,
                     &reference,
-                    grant.prepared_run.is_some()
+                    (grant.prepared_run.is_some() || grant.discovery_corpus.is_some())
                         && !roots.contains(&(kind.clone(), reference.clone())),
                 )?,
                 "record" => {

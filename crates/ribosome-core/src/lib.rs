@@ -20,6 +20,7 @@ mod experiment_files;
 pub mod experiments;
 mod export_files;
 pub mod exports;
+mod external_evidence;
 pub mod host;
 mod inventory;
 mod invocation;

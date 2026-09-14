@@ -48,18 +48,20 @@ impl Runtime {
         grant: &Grant,
         request: &ArtifactRead,
     ) -> Result<ArtifactChunk> {
+        let required_freshness = request.required_freshness.clone().unwrap_or_else(|| {
+            if grant.discovery_corpus.is_some() {
+                Freshness::Historical
+            } else {
+                Freshness::Current
+            }
+        });
         if grant.discovery_corpus.is_some()
-            && (request.snapshot_id.is_none()
-                || request.required_freshness != Some(Freshness::Historical))
+            && (request.snapshot_id.is_none() || required_freshness != Freshness::Historical)
         {
             return Err(Error::denied(
                 "assigned discovery requires an explicit historical artifact snapshot",
             ));
         }
-        let required_freshness = request
-            .required_freshness
-            .clone()
-            .unwrap_or(Freshness::Current);
         let mut chunk = if let Some(snapshot) = &request.snapshot_id {
             self.store.require_source(grant, "artifact", snapshot)?;
             let version_only: bool = self.store.db.query_row(
@@ -140,7 +142,25 @@ impl Runtime {
             self.branch_path(grant, request.branch_id.as_deref())?
                 .as_deref(),
         )?;
+        let transaction = self
+            .store
+            .db
+            .is_autocommit()
+            .then(|| self.store.write_transaction())
+            .transpose()?;
         self.store.db.execute("INSERT INTO artifact_snapshots(id,client,project,grant_id,path,branch_id,split,version,current_version,required_freshness,available,body) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",params![snapshot,grant.scope.client,grant.scope.project,grant.id,request.path,request.branch_id,serde_json::to_value(derived_split(&grant.visible_splits))?.as_str(),chunk.artifact.version,current.version,serde_json::to_value(required_freshness)?.as_str(),current.version!="absent",serde_json::to_string(&chunk)?])?;
+        if let Some(parent) = &request.snapshot_id {
+            crate::sources::source_edges(
+                &self.store.db,
+                "artifact",
+                &snapshot,
+                std::slice::from_ref(parent),
+                &[],
+            )?;
+        }
+        if let Some(transaction) = transaction {
+            transaction.commit()?;
+        }
         Ok(chunk)
     }
 }
@@ -150,20 +170,20 @@ impl Store {
         &self,
         grant: &Grant,
         source: &str,
-        prepared_ancestor: bool,
+        lineage_only: bool,
     ) -> Result<()> {
         let row = self.db.query_row("SELECT path,branch_id,grant_id,split,available,result_run_id IS NOT NULL,export_file IS NOT NULL FROM artifact_snapshots WHERE id=?1 AND client=?2 AND project=?3",params![source,grant.scope.client,grant.scope.project],|r|Ok(ArtifactAccess{path:r.get(0)?,branch:r.get(1)?,owner:r.get(2)?,split:r.get(3)?,available:r.get(4)?,tool_result:r.get(5)?,export:r.get(6)?})).optional()?;
         let unavailable = || Error::denied("artifact observation is absent or inaccessible");
         let access = row.ok_or_else(unavailable)?;
         let split: Split = serde_json::from_value(Value::String(access.split))?;
         if !access.available
-            || (!prepared_ancestor
+            || (!lineage_only
                 && !access.tool_result
                 && !access.export
                 && !grant.paths.contains(&access.path))
-            || (!prepared_ancestor && access.export && !grant.allow_export)
+            || (!lineage_only && access.export && !grant.allow_export)
             || !grant.visible_splits.contains(&split)
-            || (!prepared_ancestor && access.branch.is_some() && access.owner != grant.id)
+            || (!lineage_only && access.branch.is_some() && access.owner != grant.id)
         {
             return Err(unavailable());
         }

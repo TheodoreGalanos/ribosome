@@ -15,6 +15,16 @@ async function command(args){return new Promise((resolve,reject)=>{const p=spawn
 
 function faultConfig(directory,worker,deadline=30000){return {workspace:directory,state_dir:join(directory,'state'),node:process.execPath,worker:join(root,'tests/integration',worker),grant:{id:'grant-fault',scope:{client:'test',project:'fault'},mode:'apply',paths:['report.txt'],tools:[],profiles:['caretaker'],budget:{max_calls:8,max_tokens:'2000000',max_cost_microusd:'1000000',max_actions:5,max_work_items:1,max_depth:1,deadline_ms:String(Date.now()+deadline)},context:'fault',visible_splits:['development'],allow_export:false},request:{run_id:'run-fault',profile:'caretaker',operator:'proofreading@1',prompt:join(directory,'report.txt'),provider:'openai',model:fixtureModel('openai').id},tools:{}};}
 
+async function deadlineConfig(directory, worker) {
+  // Database migrations are setup, not part of the worker deadline under test.
+  await mkdir(join(directory, 'state'));
+  const events = join(directory, 'events.json');
+  await writeFile(events, '[]');
+  const prepared = await command(['ingest', join(directory, 'state/ribosome.db'), events]);
+  assert.equal(prepared.code, 0, prepared.stderr);
+  return faultConfig(directory, worker, 3000);
+}
+
 test('duplex RPC handles tools while the run request is pending',async()=>{
   const a=new PassThrough(),b=new PassThrough();const host=new RpcPeer(a,b),worker=new RpcPeer(b,a);
   host.handle('message.ack',async()=>({ok:true}));
@@ -42,7 +52,7 @@ test('worker death after an effect and before reading its response resumes witho
 test('host deadline cancels a pending worker and records exhausted status',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'ribosome-cancel-'));
   try{
-    await writeFile(join(directory,'report.txt'),'original');const config=faultConfig(directory,'idle-worker-fixture.mjs',1500);const file=join(directory,'config.json');await writeFile(file,JSON.stringify(config));
+    await writeFile(join(directory,'report.txt'),'original');const config=await deadlineConfig(directory,'idle-worker-fixture.mjs');const file=join(directory,'config.json');await writeFile(file,JSON.stringify(config));
     const result=await command(['run',file]);assert.equal(result.code,2,result.stderr);assert.equal(JSON.parse(result.stdout).disposition,'exhausted');
   }finally{await rm(directory,{recursive:true,force:true});}
 });
@@ -96,14 +106,16 @@ test('root deadline also bounds an unresponsive worker handshake', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ribosome-handshake-deadline-'));
   try {
     await writeFile(join(directory, 'report.txt'), 'original');
-    const config = faultConfig(directory, 'stall-handshake-fixture.mjs', 1500);
+    const config = await deadlineConfig(directory, 'stall-handshake-fixture.mjs');
     const file = join(directory, 'config.json');
     await writeFile(file, JSON.stringify(config));
     const started = performance.now();
     const result = await command(['run', file]);
     assert.equal(result.code, 2, result.stderr);
-    assert.equal(JSON.parse(result.stdout).disposition, 'exhausted');
-    assert.ok(performance.now() - started < 3500, 'Handshake must not extend the root deadline to its five-second timeout');
+    const outcome = JSON.parse(result.stdout);
+    assert.equal(outcome.disposition, 'exhausted');
+    assert.match(outcome.summary, /Root deadline reached during worker handshake/);
+    assert.ok(performance.now() - started < 4500, 'Handshake must not extend the root deadline to its five-second timeout');
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

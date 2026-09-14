@@ -1,0 +1,38 @@
+profile_version: '1'
+id: local-encoded-chat
+version: '1'
+input:
+  kind: local
+  mode: local_snapshot
+  tables:
+  - name: episodes
+    path: ../fixtures/local-encoded-chat.synthetic.jsonl
+    encoding: jsonl
+assemble:
+  base: episodes
+  as: source
+  joins: []
+episode:
+  id: /source/id
+  task: /source/task_id
+  family: /source/family
+  decoder:
+    name: chat-messages-v1
+    field: /source/conversation
+    value_encoding: json_string
+metadata: {}
+annotations:
+  publisher_result: /source/result
+policy:
+  unknown_fields: retain_owner_only
+  unknown_roles: retain_opaque
+  malformed_episode: quarantine
+  missing_tool_result: preserve_pending
+  invalid_tool_arguments: preserve_raw
+  duplicate_episode: exact_noop_conflict_error
+  embedded_code: never_execute
+  linked_artifacts: never_fetch
+  source_authority: external_record
+  actor_projection: decoder_allowlist
+  metadata_channel: owner_only
+  annotations_channel: evaluator_only

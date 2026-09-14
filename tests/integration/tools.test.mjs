@@ -67,6 +67,7 @@ test('discovery metadata can be omitted from model arguments and is left for Rus
     if (kind === 'occurrence') { delete body.frontier; delete body.operator; delete body.grounding.annotator; }
     else { delete body.run_refs; for (const window of body.source_windows) delete window.frontier; }
     const tool = tools.find(tool => tool.name === `${kind}_submit`);
+    if (kind === 'discovery') assert.equal('work_ref' in tool.parameters.properties.body.properties, false);
     const accepts = new Ajv({ strict: false }).compile(tool.parameters);
     const request = { body, provenance: { origin: 'synthetic', source_refs: [], scenario_family: 'test', split: 'development', limitations: [] } };
     assert.equal(accepts(request), true, JSON.stringify(accepts.errors));

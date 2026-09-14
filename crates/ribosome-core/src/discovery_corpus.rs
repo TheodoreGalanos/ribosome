@@ -8,6 +8,10 @@ use crate::{
 use rusqlite::{OptionalExtension, params};
 use std::collections::HashSet;
 
+pub(crate) fn corpus_operator_allowed(profile: &Profile, operator: &str) -> bool {
+    *profile == Profile::Curator || (*profile == Profile::Caretaker && operator == "proofreading@1")
+}
+
 impl Store {
     pub(crate) fn require_corpus_event(&self, grant: &Grant, event: &str) -> Result<()> {
         if let Some(reference) = &grant.discovery_corpus
@@ -262,9 +266,9 @@ impl Store {
         if allowed {
             Ok(())
         } else {
-            Err(Error::denied(
-                "source is outside the host-assigned discovery corpus",
-            ))
+            Err(Error::denied(format!(
+                "source {id:?} is outside the host-assigned discovery corpus"
+            )))
         }
     }
 

@@ -31,6 +31,7 @@
       "title": "Evaluation",
       "pages": [
         "evaluation/experiments",
+        "evaluation/external-records",
         "evaluation/support"
       ]
     },

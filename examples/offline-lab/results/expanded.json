@@ -1,0 +1,420 @@
+{
+  "date": "2026-09-13",
+  "base_commit": "12e87e74c81d38da507d545a43a80815be1d310b",
+  "implementation": "uncommitted working tree",
+  "source_sample": "Same twelve episodes and source revisions as pilot.json",
+  "allowance": {
+    "additional_calls": 1000,
+    "additional_cost_microusd": 20000000,
+    "calls_per_investigation": 100,
+    "output_tokens_per_response": 16384,
+    "calls_per_recipient": 40
+  },
+  "runs": [
+    {
+      "run_id": "nebius-discovery-attempt-4",
+      "status": "failed",
+      "disposition": "failed",
+      "calls": 6,
+      "known_cost_microusd": 98013,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-discovery-attempt-5",
+      "status": "exhausted",
+      "disposition": "exhausted",
+      "calls": 100,
+      "known_cost_microusd": 836775,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-discovery-attempt-6",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 56,
+      "known_cost_microusd": 1054530,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-discovery-followup-1",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 17,
+      "known_cost_microusd": 345011,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-contrast-45a7ea02-bf66-4acb-88ad-74e390b66045",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 17,
+      "known_cost_microusd": 161901,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-extract-c5b7f3f1-910d-453a-81e9-052a0ec42ff5",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 4,
+      "known_cost_microusd": 38657,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "function-5d479385-11e0-4d47-a981-8b1830d77d8e",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 0,
+      "known_cost_microusd": 0,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aab-ce4a-7f42-8e48-dd54425bb880",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 5,
+      "known_cost_microusd": 18137,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aac-4aa1-73d0-bdf8-3a567bca4629",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 5,
+      "known_cost_microusd": 14100,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aac-b8b9-7db0-8e0b-a40c7ed486b0",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 13,
+      "known_cost_microusd": 53224,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aae-3bca-7512-bfd7-753453a7e8ea",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 3,
+      "known_cost_microusd": 8071,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aae-8132-7a73-82d1-c477a8807d7a",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 9,
+      "known_cost_microusd": 41236,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aaf-c3e7-79b1-9e8f-71c406ba218e",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 2,
+      "known_cost_microusd": 6102,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09aaf-ee09-7110-b4dd-dcb48e7d2c34",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 9,
+      "known_cost_microusd": 28604,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "01a09ab0-e5ab-7642-85c4-bcd1106c463c",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 2,
+      "known_cost_microusd": 4538,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "aec-audit-attempt-3",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 10,
+      "known_cost_microusd": 51665,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "aec-transcript",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 8,
+      "known_cost_microusd": 73913,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-prefix",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 5,
+      "known_cost_microusd": 28660,
+      "unknown_calls": 0
+    },
+    {
+      "run_id": "nebius-contrast-rerun-7b573424-2ff6-4238-b8c5-46e174731672",
+      "status": "cancelled",
+      "disposition": "cancelled",
+      "calls": 27,
+      "known_cost_microusd": 86822,
+      "unknown_calls": 1,
+      "reserved_cost_microusd": 143052,
+      "reason": "Stopped after repeated host context resets despite successful definition reads; the retained-result access check is now fixed."
+    },
+    {
+      "run_id": "nebius-contrast-final-21a54303-9b8b-4a1e-b440-839c34ee6e35",
+      "status": "completed",
+      "disposition": "completed",
+      "calls": 13,
+      "known_cost_microusd": 108129,
+      "unknown_calls": 0,
+      "reserved_cost_microusd": 0
+    }
+  ],
+  "usage": {
+    "calls": 311,
+    "known_cost_microusd": 3058088,
+    "unknown_calls": 1,
+    "reserved_cost_microusd": 143052
+  },
+  "candidate": {
+    "id": "01a09aa9-a8f2-73c2-84b7-8835992daa48",
+    "version": "1"
+  },
+  "function": {
+    "decision": "rejected",
+    "complete": true,
+    "planned_evaluations": 8,
+    "usage_complete": true,
+    "report": {
+      "amortized_learning_cost_microusd": null,
+      "arms": [
+        {
+          "arm": "baseline",
+          "mean_measurements": {
+            "agent_latency": {
+              "mean": 33395.75,
+              "observations": 4
+            },
+            "quality": {
+              "mean": 0.25,
+              "observations": 4
+            }
+          },
+          "observed": 4,
+          "observed_mean_quality": 0.25,
+          "planned": 4,
+          "verified_success_rate": 0.25,
+          "verified_successes": 1
+        },
+        {
+          "arm": "candidate",
+          "mean_measurements": {
+            "agent_latency": {
+              "mean": 52507.5,
+              "observations": 4
+            },
+            "quality": {
+              "mean": 0.5,
+              "observations": 4
+            }
+          },
+          "observed": 4,
+          "observed_mean_quality": 0.5,
+          "planned": 4,
+          "verified_success_rate": 0.5,
+          "verified_successes": 2
+        }
+      ],
+      "cases": 2,
+      "comparisons": [
+        {
+          "control": "baseline",
+          "interval_95": {
+            "lower": 0,
+            "upper": 0.5
+          },
+          "mean_difference": 0.25,
+          "paired_cases": 2,
+          "treatment": "candidate"
+        }
+      ],
+      "complete": true,
+      "families": 2,
+      "learning_cost": null,
+      "limitations": [
+        "Intervals describe these recipient cases, not universal reliability or independent families.",
+        "Incomplete matrices and unknown usage do not support system benefit.",
+        "Learning cost is an explicit owner-supplied measurement; absent cost is unknown, not zero."
+      ],
+      "metric": "quality",
+      "objective": "function",
+      "online_usage": {
+        "actions": 19,
+        "model_calls": 48,
+        "reserved_cost_microusd": "0",
+        "reserved_tokens": "0",
+        "settled_cost_microusd": "174012",
+        "settled_tokens": "337265",
+        "undispatched_calls": 0,
+        "unknown_calls": 0,
+        "work_items": 0
+      },
+      "order": "rotated and reversed arm order by repetition; within-arm case order fixed",
+      "repetitions": 2,
+      "uncertainty_method": "paired case percentile bootstrap, 2000 resamples, 95%; repetitions averaged within cases; fewer than two cases has no interval"
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "directory-inventory",
+      "arm": "baseline",
+      "repetition": 0,
+      "passed": false,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "url-request",
+      "arm": "baseline",
+      "repetition": 0,
+      "passed": false,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "directory-inventory",
+      "arm": "candidate",
+      "repetition": 0,
+      "passed": false,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "url-request",
+      "arm": "candidate",
+      "repetition": 0,
+      "passed": true,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "directory-inventory",
+      "arm": "candidate",
+      "repetition": 1,
+      "passed": false,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "url-request",
+      "arm": "candidate",
+      "repetition": 1,
+      "passed": true,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "directory-inventory",
+      "arm": "baseline",
+      "repetition": 1,
+      "passed": false,
+      "execution_status": "completed"
+    },
+    {
+      "case_id": "url-request",
+      "arm": "baseline",
+      "repetition": 1,
+      "passed": true,
+      "execution_status": "completed"
+    }
+  ],
+  "findings": [
+    {
+      "stage": "audit",
+      "run_id": "aec-audit-attempt-3",
+      "saved_findings": 3
+    },
+    {
+      "stage": "transcript",
+      "run_id": "aec-transcript",
+      "saved_findings": 2
+    },
+    {
+      "stage": "prefix",
+      "run_id": "nebius-prefix",
+      "saved_findings": 1
+    }
+  ],
+  "retrieval": [
+    {
+      "query": "workspace package path",
+      "matches": [
+        {
+          "id": "01a09aa9-a8f2-73c2-84b7-8835992daa48",
+          "version": "1"
+        },
+        {
+          "id": "01a09aaa-f23a-7693-8237-fc474ba48d7b",
+          "version": "1"
+        },
+        {
+          "id": "01a09aab-ca76-7d32-96cb-444f0c3121d3",
+          "version": "1"
+        },
+        {
+          "id": "01a09aaa-f23b-76f1-9cbb-78c65236ac4b",
+          "version": "1"
+        },
+        {
+          "id": "01a09aab-ca77-7473-8d2c-c6f01f64e5dd",
+          "version": "1"
+        },
+        {
+          "id": "01a09aaa-f23b-76f1-9cbb-78d7ec8f0676",
+          "version": "1"
+        },
+        {
+          "id": "01a09aab-ca78-7782-b024-584c79ff8a2d",
+          "version": "1"
+        }
+      ]
+    },
+    {
+      "query": "resolve project directories",
+      "matches": []
+    },
+    {
+      "query": "overhead line capacitance",
+      "matches": []
+    }
+  ],
+  "system_comparison": {
+    "executed": false,
+    "reason": "Deferred for this pilot after the external-data candidate failed its function study. A later study needs a candidate with demonstrated local function.",
+    "status": "deferred"
+  },
+  "qualification": "function_not_established",
+  "status": "closed",
+  "closed_at": "2026-09-14",
+  "contrast": {
+    "run_id": "nebius-contrast-final-21a54303-9b8b-4a1e-b440-839c34ee6e35",
+    "investigation_id": "01a09dc0-59cd-73e1-966d-dfadf9d20a02",
+    "decision": "rejected",
+    "definition_refs": [
+      {
+        "id": "01a09a9a-3099-74e1-86ad-e2ff8cf65de1",
+        "version": "1"
+      }
+    ],
+    "definition_read_succeeded": true,
+    "context_segments": 1,
+    "inspected_event_refs": [
+      "event:offline-07c448d2:nebius:episode-0005:131",
+      "event:offline-07c448d2:nebius:episode-0005:145"
+    ],
+    "conclusion": "The EDK2 path definition does not fit the inspected GeoPandas extension-array test failures.",
+    "limitations": [
+      "Two truncated test-output excerpts and their neighboring events were inspected.",
+      "This challenges one proposed match; it does not assess every event or establish general transfer."
+    ]
+  }
+}

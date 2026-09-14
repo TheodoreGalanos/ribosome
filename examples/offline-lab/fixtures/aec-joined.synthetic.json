@@ -1,0 +1,29 @@
+{
+  "artifact": {
+    "trial_id": "synthetic-aec-trial-1",
+    "task_id": "synthetic-aec-task-1",
+    "trajectory_jsonl": "{\"format\": \"aec-bench-trajectory\", \"version\": 1}\n{\"role\": \"user\", \"step\": 0, \"content\": \"Describe what was checked.\"}\n{\"role\": \"assistant\", \"step\": 1, \"content\": \"No recorded tool check is available.\"}",
+    "conversation_jsonl": "",
+    "model": "synthetic-model",
+    "repetition": 1,
+    "output_markdown": "END_STATE_CANARY",
+    "agent_result_json": "{}"
+  },
+  "rollout": {
+    "trial_id": "synthetic-aec-trial-1",
+    "task_id": "synthetic-aec-task-1",
+    "reward": 0,
+    "prime_rl_split": "synthetic-unassigned",
+    "verifier_completed": true,
+    "breakdown_json": "{}",
+    "validity_errors_json": "[]",
+    "output_status": "completed"
+  },
+  "task": {
+    "task_id": "synthetic-aec-task-1",
+    "template": "synthetic-template",
+    "domain": "synthetic",
+    "category": "schema-test",
+    "visibility_level": "partial"
+  }
+}

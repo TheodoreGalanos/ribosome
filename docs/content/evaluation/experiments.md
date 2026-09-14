@@ -7,6 +7,8 @@ description: "Test a procedure's function or compare complete agent workflows."
 
 The laboratory runs comparisons using cases, evaluators, and acceptance rules supplied by your application. An experimenter can propose a study and interpret its results. The host executes the comparison and writes the evaluation and admission records.
 
+For experiments starting from public trajectories, see [External agent records](external-records.md).
+
 ## Choose the question
 
 | Study objective | Question |
@@ -17,6 +19,8 @@ The laboratory runs comparisons using cases, evaluators, and acceptance rules su
 A system-benefit study compares five arms: the ordinary agent, another attempt, critique and revision, caretaker help, and the candidate behavior. Each arm starts with the same ordinary worker. The host defines any later stages and gives each case its own ceiling within one shared budget.
 
 Use a function study to test a specific procedure. Use a system-benefit study when deciding whether its contribution justifies the additional work.
+
+To check the complete library workflow, begin with a known instruction and a deliberate error. The [instruction lifecycle example](../../../examples/learned-behavior/README.md#revise-and-reuse-a-known-instruction) carries it through revision, testing, admission, memory, later use and reconsideration. Its provider fixture makes the decisions repeatable; its live configuration lets you measure a model's decisions separately.
 
 ## Define and run a study
 

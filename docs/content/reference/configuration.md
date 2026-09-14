@@ -27,9 +27,11 @@ Set the workspace and state paths, choose the provider and model, and replace th
 | `node`, `worker` | Node executable and Pi-worker paths. |
 | `request` | Run identity, profile, operator, prompt, provider, and model. |
 | `grant` | Client/project scope, access mode, permitted paths/tools, and budget. |
+| `run_budget` | Optional smaller allowance for this run, charged under the existing root grant. |
+| `model_max_output_tokens` | Output allowance per model response, including continuation summaries. Defaults to 4,096; accepts up to 32,768 and respects the model's own limit. |
 | `tools` | Registered commands and the files they read, write, or validate. |
 | `attachment` | Event kinds, batching, feedback expiry, and optional steering or coordinated writes. |
-| `corpora` | Selected source evidence for discovery; choose one with `request.discovery_corpus`. |
+| `corpora` | Selected source evidence for curator investigations or caretaker proofreading; choose one with `request.discovery_corpus`. |
 | `evaluators`, `agent_evaluators` | Command evaluators or complete Pi-agent evaluation setups. |
 | `cases`, `policies` | Host-owned cases and experiment acceptance rules. |
 
@@ -54,5 +56,7 @@ This validates the presence of required provider settings without making a model
 `grant.paths` permits reads. `writable_paths` restricts writes; omitting it uses `paths` for both. `required_checks` names checks the host must run before applying a proposed change.
 
 Budgets cover model calls, tokens, local cost accounting, actions, follow-up work, and deadlines. Child runs, compaction, and metered studies share their parent's allowance. An unknown dispatched call keeps its reservation until its usage can be resolved. [Runtime and storage](../guides/runtime.md) explains scheduling and external-agent accounting.
+
+Set `run_budget` to a complete `Budget` when one run needs a smaller cap. It creates a child allocation under the grant; other work still shares the root ceiling. Reuse the unchanged config when resuming an interrupted run. Choose either `run_budget` or `request.parent_allocation_id` for a request.
 
 For full field shapes, read the [canonical schema](../../../contracts/schema.json), [CLI configuration](../../../crates/ribosome-cli/src/main.rs), and [protocol reference](../../protocol.md).

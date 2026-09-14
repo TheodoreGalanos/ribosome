@@ -26,6 +26,10 @@ struct RunConfig {
     worker: PathBuf,
     grant: Grant,
     request: AgentRunRequest,
+    #[serde(default)]
+    run_budget: Option<Budget>,
+    #[serde(default)]
+    model_max_output_tokens: Option<u32>,
     tools: BTreeMap<String, RegisteredTool>,
     #[serde(default)]
     evaluators: BTreeMap<String, CommandEvaluator>,
@@ -140,7 +144,7 @@ async fn command() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&result)?);
         }
         Some("run") | Some("host") | Some("study") => {
-            let config: RunConfig = serde_json::from_value(read_json(argument(&args, 1)?)?)?;
+            let mut config: RunConfig = serde_json::from_value(read_json(argument(&args, 1)?)?)?;
             if config.request.checkpoint.is_some() {
                 return Err(Error::invalid(
                     "checkpoints are restored from Rust storage; omit request.checkpoint",
@@ -150,6 +154,25 @@ async fn command() -> Result<()> {
             let host = LocalHost::new(&config.workspace, config.tools)?;
             let store = Store::open(config.state_dir.join("ribosome.db"))?;
             store.register_grant(&config.grant)?;
+            if let Some(budget) = &config.run_budget {
+                if config.request.parent_allocation_id.is_some() {
+                    return Err(Error::invalid(
+                        "choose run_budget or parent_allocation_id, not both",
+                    ));
+                }
+                let root = store.root_budget_status(&config.grant)?.allocation;
+                let allocation = store.allocate(
+                    &config.grant,
+                    &BudgetAllocationRequest {
+                        id: format!("host-run:{}", config.request.run_id),
+                        parent_id: root.id,
+                        cause_id: config.request.run_id.clone(),
+                        purpose: "host-run".into(),
+                        budget: budget.clone(),
+                    },
+                )?;
+                config.request.parent_allocation_id = Some(allocation.id);
+            }
             let mut runtime = Runtime::new(store, Box::new(host), &config.state_dir)?;
             for corpus in &config.corpora {
                 runtime
@@ -178,6 +201,17 @@ async fn command() -> Result<()> {
                 if let Ok(value) = std::env::var(key) {
                     environment.insert((*key).into(), value);
                 }
+            }
+            if let Some(tokens) = config.model_max_output_tokens {
+                if !(1..=32768).contains(&tokens) {
+                    return Err(Error::invalid(
+                        "model_max_output_tokens must be between 1 and 32768",
+                    ));
+                }
+                environment.insert(
+                    "RIBOSOME_MODEL_MAX_OUTPUT_TOKENS".into(),
+                    tokens.to_string(),
+                );
             }
             let worker = WorkerConfig {
                 node: config.node,

@@ -60,6 +60,7 @@ for (const model of [plainModel, reasoningModel]) test(`Azure ${model.reasoning 
   try {
     const { file, config } = await configuration(directory);
     config.request.model = model.id;
+    if (model.reasoning) config.model_max_output_tokens = 16384;
     await writeFile(file, JSON.stringify(config));
     const result = spawnSync(join(root, 'target/debug/ribosome'), ['run', file], { env: environment, encoding: 'utf8', timeout: 35000 });
     assert.equal(result.status, 0, result.stderr + '\n' + result.stdout);

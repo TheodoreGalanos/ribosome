@@ -31,9 +31,14 @@ impl Store {
             self.validate_invocation(&grant, run_id, invocation)?;
         }
         let effective = self.discovery_grant(&grant, request.discovery_corpus.as_ref())?;
-        if effective.discovery_corpus.is_some() && request.profile != Profile::Curator {
+        if effective.discovery_corpus.is_some()
+            && !crate::discovery_corpus::corpus_operator_allowed(
+                &request.profile,
+                &request.operator,
+            )
+        {
             return Err(Error::denied(
-                "discovery corpus assignments require a curator profile",
+                "corpus assignments support curator work and caretaker proofreading",
             ));
         }
         let parent: Option<String> = self

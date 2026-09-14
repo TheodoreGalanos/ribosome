@@ -287,6 +287,124 @@ fn assigned_reads_exclude_future_events_records_artifacts_and_other_runs_results
 }
 
 #[test]
+fn contrast_reads_assigned_definition_without_donor_artifact_access() {
+    let f = fixture();
+    let runtime = &f.runtime;
+    let snapshot = &f.corpus.artifacts[0].snapshot_id;
+    let mut source = submission(
+        "finding",
+        json!({"subject":"donor input","observation":"Observed the input","interpretation":"Supports the definition","evidence_refs":[],"uncertainty":[],"operator":"proofreading@1"}),
+    );
+    source["provenance"]["source_refs"] = json!([snapshot]);
+    let source = runtime
+        .store
+        .submit(
+            &f.grant,
+            &decode("RecordSubmission", source).unwrap(),
+            false,
+        )
+        .unwrap();
+    let mut selected = submission("definition", definition());
+    selected["provenance"]["source_refs"] = json!([source.id]);
+    let selected = runtime
+        .store
+        .submit(
+            &f.grant,
+            &decode("RecordSubmission", selected).unwrap(),
+            false,
+        )
+        .unwrap();
+    let mut corpus = f.corpus.clone();
+    corpus.id = "contrast".into();
+    corpus.artifacts.clear();
+    corpus.definition_refs = vec![VersionRef {
+        id: selected.id.clone(),
+        version: selected.body["version"].as_str().unwrap().into(),
+    }];
+    runtime
+        .store
+        .register_discovery_corpus(&f.grant, &corpus)
+        .unwrap();
+    let mut contrast = request(
+        "contrast",
+        Some(VersionRef {
+            id: corpus.id,
+            version: corpus.version,
+        }),
+    );
+    contrast.operator = "contrast-motif@1".into();
+    runtime
+        .store
+        .begin_run("contrast", &f.grant.id, &contrast)
+        .unwrap();
+    assert!(
+        runtime
+            .store
+            .run_grant("contrast")
+            .unwrap()
+            .paths
+            .is_empty()
+    );
+
+    let remember = |method: &str, arguments: Value| {
+        let context = runtime.store.authorize_context("contrast").unwrap();
+        let observed = runtime
+            .tool_call(
+                "contrast",
+                "tool.call",
+                json!({"call_id":id(),"method":method,"arguments":arguments}),
+            )
+            .unwrap();
+        runtime.store.append_context("contrast", &decode("ContextAppend", json!({"segment_id":context.segment_id,"after":context.count,"entries":[{"message":{"role":"toolResult","content":observed["content"],"timestamp":1},"sources":observed["sources"]}]})).unwrap()).unwrap();
+        let next = runtime.store.authorize_context("contrast").unwrap();
+        assert!(
+            !next.rebuilt,
+            "an authorized {method} result must survive the next provider request"
+        );
+        serde_json::from_str::<Value>(observed["content"].as_str().unwrap()).unwrap()
+    };
+    let read = remember("record.read", json!({"id":selected.id}));
+    assert_eq!(read["id"], selected.id);
+    let search = remember(
+        "search.query",
+        json!({"query":"","kind":"definition","inventory":"evidence","limit":10,"offset":0}),
+    );
+    assert_eq!(search["records"][0]["id"], selected.id);
+    assert!(observe(runtime, "contrast", "artifact.read", json!({"path":"input.txt","snapshot_id":snapshot,"required_freshness":"historical","offset":0,"length":100})).is_err());
+    assert!(observe(runtime, "contrast", "record.read", json!({"id":source.id})).is_err());
+
+    runtime
+        .store
+        .retire(
+            &f.grant,
+            &RetireRequest {
+                id: source.id,
+                expected_version: source.version,
+                delete: false,
+            },
+        )
+        .unwrap();
+    assert!(runtime.store.authorize_context("contrast").unwrap().rebuilt);
+    assert!(
+        observe(
+            runtime,
+            "contrast",
+            "record.read",
+            json!({"id":selected.id})
+        )
+        .is_err()
+    );
+    let search = observe(
+        runtime,
+        "contrast",
+        "search.query",
+        json!({"query":"","kind":"definition","inventory":"evidence","limit":10,"offset":0}),
+    )
+    .unwrap();
+    assert!(search["records"].as_array().unwrap().is_empty());
+}
+
+#[test]
 fn assignment_metadata_does_not_count_as_retrieved_evidence_and_online_labels_match_authority() {
     let f = fixture();
     let runtime = &f.runtime;

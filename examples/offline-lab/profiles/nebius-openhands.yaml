@@ -1,0 +1,50 @@
+# "default" is provisional; verify the actual HF config on acquisition.
+profile_version: '1'
+id: nebius-openhands
+version: '1'
+input:
+  kind: huggingface
+  dataset: nebius/SWE-rebench-openhands-trajectories
+  revision: main
+  mode: pinned_files
+  pin_before_read: true
+  credential_env: HF_TOKEN
+  tables:
+  - name: episodes
+    path: trajectories.parquet
+    config: default
+    split: train
+    encoding: parquet
+assemble:
+  base: episodes
+  as: source
+  joins: []
+episode:
+  id: /source/trajectory_id
+  task: /source/instance_id
+  family: /source/repo
+  decoder:
+    name: chat-messages-v1
+    field: /source/trajectory
+    value_encoding: array
+metadata:
+  repository: /source/repo
+annotations:
+  publisher_resolved: /source/resolved
+  publisher_test_correctness: /source/gen_tests_correct
+  publisher_test_pass_count: /source/pred_passes_gen_tests
+  publisher_exit_status: /source/exit_status
+  end_state_patch: /source/model_patch
+policy:
+  unknown_fields: retain_owner_only
+  unknown_roles: retain_opaque
+  malformed_episode: quarantine
+  missing_tool_result: preserve_pending
+  invalid_tool_arguments: preserve_raw
+  duplicate_episode: exact_noop_conflict_error
+  embedded_code: never_execute
+  linked_artifacts: never_fetch
+  source_authority: external_record
+  actor_projection: decoder_allowlist
+  metadata_channel: owner_only
+  annotations_channel: evaluator_only
