@@ -1,0 +1,305 @@
+{
+  "assessment": "Saved edits and original judge reports from the closed pilot. New interface measurements were not collected in that run.",
+  "cases": [
+    {
+      "evaluation_id": "01a09aac-4a92-7732-8305-9b9926922d61",
+      "case_id": "directory-inventory",
+      "arm": "baseline",
+      "repetition": 0,
+      "original_judge": {
+        "passed": false,
+        "correct": false,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 1
+      },
+      "output_edits_in_order": [
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "result": "Packages/DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "result": "README.md"
+            },
+            "/field/repository/other.c": {
+              "result": null,
+              "reason": "Incompatible domain: path is outside the supplied workspace and directory inventory."
+            }
+          }
+        }
+      ],
+      "review": {
+        "failure_categories": [
+          "interface",
+          "function"
+        ],
+        "reason": "Final edit uses nested result objects and retains an extra Packages/ prefix in the package-relative result."
+      }
+    },
+    {
+      "evaluation_id": "01a09aac-b8a6-7bb1-81ea-0e4b97b77cab",
+      "case_id": "url-request",
+      "arm": "baseline",
+      "repetition": 0,
+      "original_judge": {
+        "passed": false,
+        "correct": false,
+        "preserved": true,
+        "appropriate": false,
+        "changes": 1
+      },
+      "output_edits_in_order": [
+        {
+          "status": "resolved",
+          "resolutions": {
+            "guide/start": null
+          },
+          "reason": "This request describes URL routing and supplies no filesystem workspace.",
+          "independent_note": "Retain the independent instrument schedule."
+        }
+      ],
+      "review": {
+        "failure_categories": [
+          "function",
+          "unnecessary_intervention"
+        ],
+        "reason": "Changes the already correct incompatible result to status resolved."
+      }
+    },
+    {
+      "evaluation_id": "01a09aae-3bb9-7ef0-bda3-a4c7b12ba038",
+      "case_id": "directory-inventory",
+      "arm": "candidate",
+      "repetition": 0,
+      "original_judge": {
+        "passed": false,
+        "correct": false,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 3
+      },
+      "output_edits_in_order": [
+        {
+          "status": "resolved",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "edk2_relative_path": "DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "edk2_relative_path": null,
+              "reason": "path is in the workspace but not under the declared EDK2 package root repo/Packages"
+            },
+            "/field/repository/other.c": {
+              "edk2_relative_path": null,
+              "reason": "path is outside the declared workspace /field/repo"
+            }
+          },
+          "independent_note": "Retain the independent instrument schedule."
+        },
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "result": "DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "result": "README.md"
+            },
+            "/field/repository/other.c": {
+              "result": null,
+              "reason": "Outside the described workspace /field/repo; incompatible domain."
+            }
+          }
+        },
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "result": "DevicePkg/Drivers/Gauge.c",
+              "reason": null
+            },
+            "/field/repo/README.md": {
+              "result": null,
+              "reason": "The path is in the workspace but not under the declared package_paths, so no EDK2-relative package resolution applies."
+            },
+            "/field/repository/other.c": {
+              "result": null,
+              "reason": "The path is outside the supplied workspace inventory and comes from an incompatible domain."
+            }
+          }
+        }
+      ],
+      "review": {
+        "failure_categories": [
+          "interface",
+          "function"
+        ],
+        "reason": "Final edit uses nested result objects and rejects the workspace-relative README path."
+      }
+    },
+    {
+      "evaluation_id": "01a09aae-8118-76b2-a187-695036b50c8a",
+      "case_id": "url-request",
+      "arm": "candidate",
+      "repetition": 0,
+      "original_judge": {
+        "passed": true,
+        "correct": true,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 0
+      },
+      "output_edits_in_order": [],
+      "review": {
+        "failure_categories": [],
+        "reason": "Preserves the already correct incompatible result."
+      }
+    },
+    {
+      "evaluation_id": "01a09aaf-c3cf-73a0-8f76-443c6875f772",
+      "case_id": "directory-inventory",
+      "arm": "candidate",
+      "repetition": 1,
+      "original_judge": {
+        "passed": false,
+        "correct": false,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 2
+      },
+      "output_edits_in_order": [
+        {
+          "status": "resolved",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": "DevicePkg/Drivers/Gauge.c",
+            "/field/repo/README.md": null,
+            "/field/repository/other.c": null
+          },
+          "reasons": {
+            "/field/repo/README.md": "Inside the workspace but outside the supplied package path inventory.",
+            "/field/repository/other.c": "Outside the supplied workspace /field/repo, so it is incompatible with the inventory."
+          },
+          "independent_note": "Retain the independent instrument schedule."
+        },
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "relative_path": "Packages/DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "relative_path": "README.md"
+            },
+            "/field/repository/other.c": {
+              "relative_path": null,
+              "reason": "incompatible: path is outside the supplied workspace /field/repo"
+            }
+          }
+        }
+      ],
+      "review": {
+        "failure_categories": [
+          "interface",
+          "function"
+        ],
+        "reason": "Final edit uses nested result objects and retains an extra Packages/ prefix in the package-relative result."
+      }
+    },
+    {
+      "evaluation_id": "01a09aaf-edf1-70a3-8e93-dbe549b2d17d",
+      "case_id": "url-request",
+      "arm": "candidate",
+      "repetition": 1,
+      "original_judge": {
+        "passed": true,
+        "correct": true,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 0
+      },
+      "output_edits_in_order": [],
+      "review": {
+        "failure_categories": [],
+        "reason": "Preserves the already correct incompatible result."
+      }
+    },
+    {
+      "evaluation_id": "01a09ab0-e59e-7a90-ae33-233b6ce63a72",
+      "case_id": "directory-inventory",
+      "arm": "baseline",
+      "repetition": 1,
+      "original_judge": {
+        "passed": false,
+        "correct": false,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 2
+      },
+      "output_edits_in_order": [
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "result": "Packages/DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "result": "README.md"
+            },
+            "/field/repository/other.c": {
+              "result": null,
+              "reason": "Path is outside the supplied /field/repo workspace inventory."
+            }
+          }
+        },
+        {
+          "status": "resolved",
+          "independent_note": "Retain the independent instrument schedule.",
+          "resolutions": {
+            "/field/repo/Packages/DevicePkg/Drivers/Gauge.c": {
+              "result": "Packages/DevicePkg/Drivers/Gauge.c"
+            },
+            "/field/repo/README.md": {
+              "result": "README.md"
+            },
+            "/field/repository/other.c": {
+              "result": null,
+              "reason": "incompatible: path is outside the supplied workspace and is not EDK2-relative"
+            }
+          }
+        }
+      ],
+      "review": {
+        "failure_categories": [
+          "interface",
+          "function"
+        ],
+        "reason": "Final edit uses nested result objects and retains an extra Packages/ prefix in the package-relative result."
+      }
+    },
+    {
+      "evaluation_id": "01a09ab1-0de9-7163-a9a3-4a09b53576fd",
+      "case_id": "url-request",
+      "arm": "baseline",
+      "repetition": 1,
+      "original_judge": {
+        "passed": true,
+        "correct": true,
+        "preserved": true,
+        "appropriate": true,
+        "changes": 0
+      },
+      "output_edits_in_order": [],
+      "review": {
+        "failure_categories": [],
+        "reason": "Preserves the already correct incompatible result."
+      }
+    }
+  ]
+}

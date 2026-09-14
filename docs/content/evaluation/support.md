@@ -31,7 +31,29 @@ The [instruction lifecycle example](../../../examples/learned-behavior/README.md
 
 The external-trajectory campaign also exposed a contrast access bug: checks on a definition's supporting files blocked its delivery and later cleared the reviewer's context. The corrected path checks source availability while keeping donor files outside the review assignment. A regression now covers reading, retrieval, continued context and withdrawal. The live rerun completed with one context segment and saved a rejected match against the inspected GeoPandas excerpts. The [external-data pilot](../../../examples/offline-lab/expanded-results.md) is closed, with its broader system comparison deferred after a negative function result.
 
-## Recorded R7 live trials
+## External-data development pilot
+
+The external-data pilot completed discovery, extraction and eight fresh task executions. The candidate preserved an already correct incompatible result but failed both applicable path-resolution trials. It was not admitted, and the broader system comparison was deferred.
+
+| Stage | Observed result |
+| --- | --- |
+| Import | Twelve AEC-Bench and Nebius episodes acquired and used in development investigations. |
+| Discovery and extraction | A definition, occurrence, investigation and instruction describing an EDK2 domain procedure. |
+| Contrast | Rejected a match against two inspected GeoPandas excerpts. |
+| Applicable task | Baseline 0/2; candidate 0/2. Both candidate trials failed path resolution. |
+| Incompatible task | Baseline 1/2; candidate 2/2. Both candidate trials preserved the correct output. |
+
+The [candidate and case outputs](../../../examples/offline-lab/expanded-results.md#what-the-candidate-carried-forward) make the instruction and its failures inspectable. This small development study supports analysis of those cases; broader transfer remains an open question.
+
+## Agent-strategy follow-up
+
+A later investigation used a numpydoc execution to identify an agent strategy: inspect a warning's route and actual wrapper metadata, adapt a contradicted assumption, then check the contextual and context-free cases. Discovery, a nearby contrast and extraction completed after an interrupted attempt and owner-scheduled continuation.
+
+The first eight configuration-task executions exposed an ambiguous field meaning in the recipient contract. After clarifying that meaning for both conditions, a second eight-execution study passed: candidate and baseline each repaired both applicable trials and preserved the already-correct configuration twice. All outputs met the interface and preserved independent work. The function study accepted the candidate for those local cases; production admission was not requested.
+
+The [behavior results](../../../examples/offline-lab/behavior-results.md) include both attempts, the instruction, source excerpts, owner interventions, case outputs and costs. This demonstrates local function with no measured advantage over baseline. The same follow-up found the earlier path candidate through bounded lexical query reformulation.
+
+## Earlier R7 live trials
 
 | Trial | Observed result |
 | --- | --- |

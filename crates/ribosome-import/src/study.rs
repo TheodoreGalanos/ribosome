@@ -338,7 +338,28 @@ pub fn project_episode(
             "evidence_refs":[],"counterexamples":[],"responses":[],"regression_cases":[],"conflicts":[],"supersedes":[]}).as_object().unwrap().clone()};
     let mut events: Vec<Event> = Vec::new();
     let mut snapshots = Vec::new();
+    let mut pending_calls = BTreeMap::new();
     for (index, message) in episode.decoded.messages.iter().enumerate() {
+        let event_id = format!("event:{execution}:{index}");
+        // Sequence records chronology. Only an identified call/result pair
+        // establishes a source-reported parent; later messages may be independent.
+        let parents = if message.role == "tool" {
+            message
+                .tool_call_id
+                .as_ref()
+                .and_then(|id| pending_calls.remove(id.as_str()))
+                .into_iter()
+                .collect()
+        } else {
+            Vec::new()
+        };
+        if message.role == "assistant" {
+            for call in &message.tool_calls {
+                if let Some(id) = call["id"].as_str() {
+                    pending_calls.insert(id, event_id.clone());
+                }
+            }
+        }
         let mut artifacts = Vec::new();
         let material = serde_json::to_string(message)?;
         let payload = if material.len() > 16 * 1024 {
@@ -380,17 +401,14 @@ pub fn project_episode(
         let mut event_provenance = provenance.clone();
         event_provenance.source_refs.push(source_id.clone());
         events.push(Event {
-            id: format!("event:{execution}:{index}"),
+            id: event_id,
             scope: scope.clone(),
             run_id: execution.clone(),
             producer: "external-import".into(),
             sequence: index.to_string(),
             kind: "external_message".into(),
             timestamp_ms: episode.acquired_ms.clone(),
-            parents: events
-                .last()
-                .map(|e| vec![e.id.clone()])
-                .unwrap_or_default(),
+            parents,
             correlation: execution.clone(),
             artifacts,
             payload: payload.as_object().unwrap().clone(),

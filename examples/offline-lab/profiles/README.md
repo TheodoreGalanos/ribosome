@@ -56,11 +56,13 @@ Use an existing decoder when the message objects have the supported `role`, `con
 
 AEC's profile also selects a conversation fallback when its trajectory is missing, null, empty or header-only. A malformed nonempty trajectory produces a quarantine reason. Inspect that reason before changing the mapping.
 
-`prepare` validates the profile against the [schema](../../../crates/ribosome-import/profile.schema.json), decodes the source and writes its report. Start with a small local fixture when adapting a profile. Keep the existing supported policy values and use a new output directory when changing an acquired profile.
+`prepare` validates the profile against the [schema](../../../crates/ribosome-import/profile.schema.json), decodes the source and writes its report. Start with a small local fixture when adapting a profile. Keep the existing supported policy values and use a new output directory when changing an acquired profile. Both local and remote preparation reject a changed mapping before acquisition. Reuse checks task, family, metadata and annotations as well as the messages.
 
 ## Use tool information during review
 
-The decoder preserves message roles, tool names, original arguments, parsed argument objects where available, call IDs and result IDs. Coverage reports count paired results and list pending calls. These describe what the source recorded.
+The decoder preserves message roles, tool names, original arguments, parsed argument objects where available, call IDs and result IDs. Coverage reports count paired results and list pending calls. These describe what the source recorded. Published events use `sequence` for order. A matched tool result names its calling message as a parent; adjacent independent messages have no dependency parent.
+
+For evidence published before this parent-link correction, create assignments with a new study ID to rebuild the event graph. Earlier stored events and experiment results retain their original links.
 
 A host can use those fields to find relevant interactions before creating a study assignment. This example lists the `read_total` calls in the synthetic episode and locates their recorded results:
 

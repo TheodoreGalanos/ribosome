@@ -55,23 +55,11 @@ pub fn read_tables(
         .credential_env
         .as_ref()
         .and_then(|key| std::env::var(key).ok());
-    let previous = output.join("source-lock.json");
-    let requested_revision = if previous.exists() {
-        let old: SourceLock = serde_json::from_slice(&std::fs::read(previous)?)?;
-        if serde_json::to_value(&old.profile)? != serde_json::to_value(&lock.profile)? {
-            return Err(Error::conflict(
-                "profile changed; use a new acquisition directory",
-            ));
-        }
-        old.revision
-            .ok_or_else(|| Error::invalid("saved HF lock has no revision"))?
-    } else {
-        profile
-            .input
-            .revision
-            .clone()
-            .unwrap_or_else(|| "main".into())
-    };
+    let requested_revision = lock
+        .revision
+        .clone()
+        .or_else(|| profile.input.revision.clone())
+        .unwrap_or_else(|| "main".into());
     if !requested_revision
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))

@@ -17,6 +17,20 @@ A behavioral motif describes a useful function in an agent's work, such as check
 
 A separate admission record states the context in which an implementation has been accepted for reuse.
 
+## Say what was discovered
+
+An execution can support several useful kinds of knowledge:
+
+| Kind | Supporting evidence |
+| --- | --- |
+| Agent strategy | A decision between available options, the chosen action, and a subsequent observation or check. |
+| Domain procedure | An algorithm or procedure described in a file the agent inspected, such as a project's path-resolution rules. |
+| Artifact requirement | A condition the result must satisfy, such as preserving an independent field. |
+
+State the kind in the definition's intent and the investigation's claims. To describe an agent strategy, identify the execution events that demonstrate it. A procedure found in source code can be useful to extract; its presence in a file establishes what that code describes. The agent's use of it needs its own evidence.
+
+Chronological order is recorded in event sequences. Imported tool results link to their identified calls. A proposed relationship between otherwise adjacent messages remains an inference.
+
 ## Example: check before handoff
 
 A worker produces a report, runs a check, and sends it to a planner.
@@ -36,5 +50,7 @@ Recognition and outcome are recorded separately. An obligation can also remain o
 Curators inspect selected execution evidence, search nearby events, and compare examples. A definition describes the conditions, required observations, and expected result of a behavior. An occurrence ties that interpretation to retrieved evidence, including events across producers.
 
 A curator can save an inconclusive investigation when the evidence is insufficient. When a candidate is ready, extraction produces an implementation. Ribosome can execute prepared instructions through Pi with task-specific bindings, or invoke a host-registered procedure.
+
+Extraction should preserve the useful procedure: observations to acquire, distinctions to make, actions those distinctions support, and checks on the result. Read the instruction as a recipient: what can you now do beyond the task description? Test that procedure with a nearby case requiring a different action or no change, and retain any missing steps as open questions.
 
 Start with [Discover a behavior](../guides/discovery.md), then [Reuse a procedure](../guides/reuse.md). [Current support](../evaluation/support.md) describes the observed learning trials.
