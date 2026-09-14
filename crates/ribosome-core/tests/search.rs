@@ -209,7 +209,18 @@ fn schema_nineteen_upgrades_with_existing_records_and_a_backup() {
     drop(store);
     let database = directory.path().join("state.db");
     let connection = rusqlite::Connection::open(&database).unwrap();
-    connection.execute_batch("DROP TRIGGER record_index_insert; DROP TRIGGER record_index_update; DROP TRIGGER record_index_delete; DROP TABLE record_index_generation; PRAGMA user_version=19;").unwrap();
+    connection
+        .execute_batch(
+            "DROP TABLE evaluation_sources;
+             DROP TABLE protected_exposures;
+             ALTER TABLE archive DROP COLUMN evidence;
+             DROP TRIGGER record_index_insert;
+             DROP TRIGGER record_index_update;
+             DROP TRIGGER record_index_delete;
+             DROP TABLE record_index_generation;
+             PRAGMA user_version=19;",
+        )
+        .unwrap();
     drop(connection);
     let store = Store::open(&database).unwrap();
     assert_eq!(
