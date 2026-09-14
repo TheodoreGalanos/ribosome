@@ -47,6 +47,6 @@ For your own workflow, start with [Connect an agent](docs/content/guides/connect
 
 ## Status
 
-Ribosome is an early-stage library, available from source. Behavioral discovery, prepared instruction execution, and whole-agent comparisons are implemented; live learning results remain mixed and incomplete. Useful transfer and improvements over simpler workflows are still being evaluated. See [Current support](docs/content/evaluation/support.md).
+Ribosome is an early-stage library, available from source. Owner-guided trials have completed discovery, instruction extraction and tests on new local tasks, with both passing and rejected candidates. Reliable transfer and improvements over simpler workflows remain unproven. See [Current support](docs/content/evaluation/support.md).
 
 Begin with observation and limited permissions. Shared-file repairs need cooperating writers, and untrusted code needs an isolated executor.
