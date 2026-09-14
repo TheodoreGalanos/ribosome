@@ -19,6 +19,95 @@ fn observe(runtime: &Runtime, method: &str, arguments: Value) -> ribosome_import
 }
 
 #[test]
+fn imported_dependencies_follow_call_identity_not_message_order() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/offline-lab");
+    let profile = ImportProfile::read(&root.join("profiles/local-chat.yaml")).unwrap();
+    let mut episode = normalize(&profile, json!({"source":{"id":"interleaved","task_id":"task","family":"independent-calls","messages":[
+        {"role":"user","content":"Inspect two independent inputs."},
+        {"role":"assistant","tool_calls":[{"id":"A","function":{"name":"read","arguments":"{}"}},{"id":"B","function":{"name":"read","arguments":"{}"}}]},
+        {"role":"tool","tool_call_id":"A","content":"First input."},
+        {"role":"tool","tool_call_id":"B","content":"Second input."},
+        {"role":"assistant","content":"An independent observation."},
+        {"role":"tool","tool_call_id":"unknown","content":"Unmatched result."},
+        {"role":"tool","tool_call_id":"A","content":"Duplicate result."}
+    ]}}), &Limits::default()).unwrap();
+    episode.id = "episode-0000".into();
+    let grant: Grant = decode("Grant", json!({"id":"owner","scope":{"client":"test","project":"dependencies"},"mode":"observe","paths":[],"tools":[],"profiles":["curator"],
+        "budget":{"max_calls":10,"max_tokens":"100000","max_cost_microusd":"100000","max_actions":0,"max_work_items":0,"max_depth":0,"deadline_ms":(now_ms()+60000).to_string()},
+        "context":"import-test","visible_splits":["development"],"allow_export":false})).unwrap();
+    let (source, events, snapshots) = project_episode(
+        "pilot",
+        "local",
+        &episode,
+        &grant.scope,
+        &Split::Development,
+    )
+    .unwrap();
+    assert!(
+        events[1].parents.is_empty(),
+        "adjacency is not a dependency"
+    );
+    assert_eq!(events[2].parents, [events[1].id.clone()]);
+    assert_eq!(events[3].parents, [events[1].id.clone()]);
+    assert!(events[4..].iter().all(|event| event.parents.is_empty()));
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| event.sequence.as_str())
+            .collect::<Vec<_>>(),
+        ["0", "1", "2", "3", "4", "5", "6"]
+    );
+
+    let store = Store::open(directory.path().join("state.db")).unwrap();
+    store.register_grant(&grant).unwrap();
+    store
+        .import_external_episode(&grant, &source, &events, &snapshots)
+        .unwrap();
+    let request = decode("AgentRunRequest", json!({"run_id":"curator","profile":"curator","operator":"discovery@1","prompt":"Inspect the imported evidence","provider":"openai","model":"test-model"})).unwrap();
+    store.begin_run("curator", &grant.id, &request).unwrap();
+    let fixtures: Value = serde_json::from_str(include_str!(
+        "../../ribosome-core/tests/fixtures/motif-records.json"
+    ))
+    .unwrap();
+    let submission = |kind: &str, body: Value| {
+        decode::<RecordSubmission>(
+            "RecordSubmission",
+            json!({"kind":kind,"body":body,"provenance":source.provenance}),
+        )
+        .unwrap()
+    };
+    let definition = store
+        .submit(
+            &grant,
+            &submission("definition", fixtures["definition"].clone()),
+            false,
+        )
+        .unwrap();
+    for (from, to, supported) in [(0, 1, false), (2, 3, false), (1, 3, true)] {
+        let mut occurrence = fixtures["occurrence"].clone();
+        occurrence["definition"]["id"] = json!(definition.id);
+        occurrence["execution"] = json!(events[0].run_id);
+        occurrence["event_refs"] = json!([events[from].id, events[to].id]);
+        occurrence["frontier"] = json!({format!("{}/external-import", events[0].run_id):"6"});
+        occurrence["grounding"]["role_bindings"][0]["event_refs"] = json!([events[from].id]);
+        occurrence["grounding"]["role_bindings"][1]["event_refs"] = json!([events[to].id]);
+        occurrence["grounding"]["dependency_evidence"] = json!([{"source_event_ref":events[from].id,"target_event_ref":events[to].id,"basis":"source_reported","evidence_refs":[events[to].id],"explanation":"Source relationship"}]);
+        occurrence["grounding"]["local_outcome"]["evidence_refs"] = json!([events[to].id]);
+        let result = store.submit(&grant, &submission("occurrence", occurrence.clone()), false);
+        if supported {
+            result.unwrap();
+        } else {
+            assert!(result.unwrap_err().message.contains("source_reported"));
+            occurrence["grounding"]["dependency_evidence"][0]["basis"] = json!("inferred");
+            store
+                .submit(&grant, &submission("occurrence", occurrence), false)
+                .unwrap();
+        }
+    }
+}
+
+#[test]
 fn assigned_prefix_excludes_suffix_snapshots_and_withdrawal_removes_imported_evidence() {
     for (profile, operator) in [("curator", "discovery@1"), ("caretaker", "proofreading@1")] {
         check_prefix(profile, operator);

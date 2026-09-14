@@ -68,8 +68,23 @@ pub fn prepare(profile_path: &Path, output: &Path, limits: &Limits) -> Result<Im
             "episode limit must be 1..1000 and no greater than table_rows",
         ));
     }
-    std::fs::create_dir_all(output)?;
     let profile = ImportProfile::read(profile_path)?;
+    let previous_lock = output.join("source-lock.json");
+    let previous: Option<SourceLock> = if previous_lock.exists() {
+        let previous: SourceLock = serde_json::from_slice(&std::fs::read(previous_lock)?)?;
+        if serde_json::to_value(&previous.profile)? != serde_json::to_value(&profile)? {
+            return Err(Error::conflict(
+                "profile changed; use a new acquisition directory",
+            ));
+        }
+        if profile.input.kind == "huggingface" && previous.revision.is_none() {
+            return Err(Error::invalid("saved HF lock has no revision"));
+        }
+        Some(previous)
+    } else {
+        None
+    };
+    std::fs::create_dir_all(output)?;
     let mut source_lock = SourceLock {
         version: "1".into(),
         profile: profile.clone(),
@@ -78,7 +93,7 @@ pub fn prepare(profile_path: &Path, output: &Path, limits: &Limits) -> Result<Im
             .dataset
             .clone()
             .unwrap_or_else(|| profile.id.clone()),
-        revision: None,
+        revision: previous.and_then(|lock| lock.revision),
         snapshot_kind: profile.input.mode.clone(),
         files: vec![],
         selected: vec![],
@@ -222,7 +237,15 @@ pub fn prepare(profile_path: &Path, output: &Path, limits: &Limits) -> Result<Im
         let path = output.join("episodes").join(format!("{}.json", episode.id));
         if path.exists() {
             let previous: Episode = serde_json::from_slice(&std::fs::read(&path)?)?;
-            if previous.raw != episode.raw || previous.decoded != episode.decoded {
+            if previous.id != episode.id
+                || previous.source_id != episode.source_id
+                || previous.task != episode.task
+                || previous.family != episode.family
+                || previous.metadata != episode.metadata
+                || previous.annotations != episode.annotations
+                || previous.raw != episode.raw
+                || previous.decoded != episode.decoded
+            {
                 return Err(Error::conflict(
                     "saved episode identity has different content",
                 ));

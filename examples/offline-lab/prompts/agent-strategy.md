@@ -1,0 +1,3 @@
+This investigation asks for a strategy enacted by the source agent. Which observations led it to choose one action over the available alternatives, and what subsequent evidence tested that decision? Keep the procedure implemented in the source code separate from the agent's method of investigating and changing it.
+
+Propose at most one strategy, with the decision and action events that support it, the conditions under which it is useful, and a nearby situation requiring a different response. No strategy name or preferred tool sequence is supplied. If this window supports only a domain procedure or artifact requirement, record that limit and a no_motif or inconclusive investigation for the strategy question.

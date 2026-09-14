@@ -1,0 +1,71 @@
+{
+  "purpose": "Reformulate a previously unsuccessful query using existing lexical tools, then inspect candidate applicability.",
+  "results": [
+    {
+      "query": "resolve project directories",
+      "run_id": "retrieval-298c40e2-f4a7-45ba-80c7-4e54b791aa71",
+      "disposition": "completed",
+      "summary": "Found a prepared candidate for EDK2-style project directory resolution: definition 01a09a9a-3099-74e1-86ad-e2ff8cf65de1 and implementation 01a09aa9-a8f2-73c2-84b7-8835992daa48. Saved memory 01a09e58-df8a-7da1-84bd-e51220928f3f noting applicability and unresolved requirements. No execution or admission was attempted.",
+      "memories": [
+        {
+          "id": "01a09e58-df8a-7da1-84bd-e51220928f3f",
+          "content": "Selected candidate: the EDK2 workspace/package path normalization and validation definition with its paired test-harness implementation. It matches directory-resolution requests only when the task concerns workspace root resolution, package-path validation, and EDK2-relative path conversion.",
+          "applicability": "Use for tasks that resolve or validate EDK2 project/workspace directories from workspace root, package-path lists, and source paths, especially when .dec-based package discovery and nested-package policy matter.",
+          "evidence_refs": [
+            "01a09a9a-3099-74e1-86ad-e2ff8cf65de1",
+            "01a09aa9-a8f2-73c2-84b7-8835992daa48"
+          ]
+        }
+      ],
+      "searches": [
+        {
+          "inventory": "evidence",
+          "limit": 10,
+          "offset": 0,
+          "order": "id",
+          "query": "resolve project directories",
+          "query_mode": "all_terms"
+        },
+        {
+          "inventory": "evidence",
+          "limit": 10,
+          "offset": 0,
+          "order": "relevance",
+          "query": "resolve directory project",
+          "query_mode": "any_terms"
+        },
+        {
+          "inventory": "evidence",
+          "limit": 10,
+          "offset": 0,
+          "order": "relevance",
+          "query": "get_edk2_relative_path_from_absolute_path",
+          "query_mode": "any_terms"
+        },
+        {
+          "inventory": "evidence",
+          "kind": "implementation",
+          "limit": 10,
+          "offset": 0,
+          "order": "relevance",
+          "query": "workspace package path normalization validation",
+          "query_mode": "any_terms"
+        }
+      ],
+      "read_records": [
+        "01a09a9a-3099-74e1-86ad-e2ff8cf65de1",
+        "01a09aa9-a8f2-73c2-84b7-8835992daa48"
+      ],
+      "usage": {
+        "calls": 8,
+        "known_cost_microusd": 64909,
+        "unknown_calls": 0
+      }
+    }
+  ],
+  "limitations": [
+    "One request in the existing development inventory; not a retrieval benchmark.",
+    "Finding the candidate does not establish that its instruction works.",
+    "12-call cap; three reformulations requested in the prompt."
+  ]
+}

@@ -14,6 +14,8 @@ Your application keeps its agent loop, tools, and definition of success. You cho
 
 **Learn from executions.** A failed run can contain a useful procedure; a successful run can contain unnecessary work. Curator agents investigate these behaviors, compare explanations and counterexamples, and prepare reusable instructions. A behavioral motif describes the function—not just a sequence of tool calls. [Discovery guide →](docs/content/guides/discovery.md)
 
+**Analyze existing runs.** Import trajectories from local files or Hugging Face, inspect selected evidence, and test a prepared instruction on a fresh task. AEC-Bench and Nebius examples are included. [External agent records →](docs/content/evaluation/external-records.md)
+
 **Remember, test, and reuse.** Keep project knowledge with its supporting evidence. Run prepared instructions on new inputs, and compare candidate behavior with ordinary execution, retries, or critique. A promising example becomes a candidate to evaluate, not an automatic rule for every future task. [Memory](docs/content/guides/memory.md) · [Reuse](docs/content/guides/reuse.md) · [Experiments](docs/content/evaluation/experiments.md)
 
 ## Why “Ribosome”?

@@ -1,6 +1,6 @@
 # External-data pilot results
 
-This pilot is closed. Ribosome completed discovery, contrast review, extraction and a function study on fresh local tasks. The candidate passed two of four executions; the baseline passed one. All eight executions completed. The candidate failed both path-resolution cases, and E6, the broader system comparison, is deferred.
+This pilot is closed. Ribosome completed discovery, contrast review, extraction and all eight function-study executions. The instruction respected an applicability boundary but failed its intended path-resolution function. It was not admitted. E6, the broader system comparison, is deferred.
 
 The campaign began locally on 13 September 2026 and closed on 14 September, using the same twelve episodes as the [first pilot](results.md). The [aggregate results](results/expanded.json) contain run counts, costs, retrieval results and case outcomes. Source transcripts and provider settings remain private.
 
@@ -29,6 +29,8 @@ The discovery describes an EDK2 path utility visible in a software-agent traject
 
 The extracted instruction retained applicability checks and abstention conditions. Its directions for calculating the actual mapping were much less specific. Fresh recipients exposed that gap:
 
+The [sanitized candidate record](results/path-candidate.json) includes its full instruction text, declared input/output contract, original recipient prompt and source attribution. The text is unchanged; provider configuration and local acquisition paths are omitted. It was extracted from the Nebius trajectory for `tianocore__edk2-pytool-library-372`, published in [SWE-rebench OpenHands trajectories](https://huggingface.co/datasets/nebius/SWE-rebench-openhands-trajectories) under CC BY 4.0.
+
 | Recipient task | Baseline | Candidate |
 | --- | ---: | ---: |
 | Resolve paths from a supplied directory inventory | 0/2 | 0/2 |
@@ -37,6 +39,18 @@ The extracted instruction retained applicability checks and abstention condition
 All executions preserved the independent metadata field. The candidate consistently left the incompatible result in place. On the applicable task, it confused package-relative and workspace-relative paths. One run produced a correct intermediate mapping, then replaced the workspace-relative answer with an incorrect rejection.
 
 The judge expected path strings or null values; several outputs used nested objects. Manual inspection of the saved edits also found incorrect path mappings in all four failed path executions. The next recipient prompt should state the output shape explicitly so formatting and path interpretation can be assessed separately.
+
+The [saved case outputs](results/path-case-outputs.json) include the original judge reports and each output edit. A review of those saved results distinguishes the failures below. These categories are a later inspection; the original study measured combined quality.
+
+| Case | Condition and repetition | Failure categories | Evidence in the output |
+| --- | --- | --- | --- |
+| Path resolution | Baseline 0 and 1 | Interface, function | Nested result objects; package path retains the extra `Packages/` prefix. |
+| Path resolution | Candidate 0 | Interface, function | Nested result objects; final output rejects the workspace-relative README path. |
+| Path resolution | Candidate 1 | Interface, function | Nested result objects; final output retains the extra `Packages/` prefix. |
+| URL request | Baseline 0 | Function, unnecessary intervention | Replaces a correct incompatible result with `status: resolved`. |
+| URL request | Baseline 1; candidate 0 and 1 | None | Leaves the correct incompatible result in place. |
+
+The updated path-study example declares the same output contract and path semantics to both conditions. Its judge reports interface compliance, functional correctness, preservation and intervention separately. An unsupported output representation leaves functional correctness unassessed. Those changes apply to future runs; the original outcomes above are retained.
 
 Two cases and two repetitions support inspection of these failures. They do not establish a reliable improvement rate. The instruction was not admitted for production use.
 
@@ -53,6 +67,12 @@ The first contrast called `record_read` with the correct assigned definition ID.
 The corrected path checks availability of supporting evidence while keeping donor files outside the assignment. The regression now covers reading, retrieval, the next provider request and withdrawal. A new live run used the same model, definition, challenge assignment and call limit. It completed in **13 calls**, costing **US$0.108129**, with settled usage and one context segment throughout.
 
 Its saved investigation rejected applying the EDK2 path definition to the inspected GeoPandas evidence. The cited excerpts concern `GeometryArray` tests: a missing test assertion helper and a NumPy `copy=False` compatibility error. They provide no support for the definition's workspace-root resolution or package-path procedure. The reviewer inspected two truncated test-output excerpts and neighboring events, and recorded that coverage limit. This is a completed negative match assessment; general transfer remains unestablished.
+
+## Follow-up after review
+
+A [bounded agentic retrieval probe](results/retrieval-followup.json) found the candidate from “resolve project directories” using an initial search and three reformulations, then read its definition and instruction. It completed in eight model calls, costing US$0.064909 at the configured catalogue rates. This one query supports using the existing search tools interactively; finding the candidate does not establish its usefulness.
+
+The [behavior follow-up](behavior-results.md) investigates decisions enacted in another source execution and tests a fresh warning configuration. Its results are separate from this closed pilot.
 
 ## Checks and closure
 

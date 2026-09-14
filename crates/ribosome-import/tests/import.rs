@@ -158,6 +158,73 @@ fn local_prepare_is_repeatable_and_reports_conflicting_source_content() {
 }
 
 #[test]
+fn local_reuse_rejects_changed_profile_mappings_before_reading_sources() {
+    for field in ["family", "task", "metadata", "annotations"] {
+        let temp = tempfile::tempdir().unwrap();
+        let mut mapping = serde_json::to_value(profile("local-chat")).unwrap();
+        let source = temp.path().join("source.jsonl");
+        std::fs::copy(root().join("fixtures/local-chat.synthetic.jsonl"), &source).unwrap();
+        mapping["input"]["tables"][0]["path"] = json!(source);
+        let input = temp.path().join("profile.yaml");
+        std::fs::write(&input, mapping.to_string()).unwrap();
+        let output = temp.path().join("acquisition");
+        prepare(&input, &output, &Limits::default()).unwrap();
+        match field {
+            "family" => mapping["episode"]["family"] = json!("/source/task_id"),
+            "task" => mapping["episode"]["task"] = json!("/source/family"),
+            "metadata" => mapping["metadata"]["group"] = json!("/source/family"),
+            _ => mapping["annotations"]["publisher_result"] = json!("/source/family"),
+        }
+        std::fs::write(&input, mapping.to_string()).unwrap();
+        let error = prepare(&input, &output, &Limits::default()).unwrap_err();
+        assert!(
+            error.message.contains("profile changed"),
+            "{field}: {error}"
+        );
+        // A profile conflict must be reported before touching source files.
+        std::fs::remove_file(source).unwrap();
+        let error = prepare(&input, &output, &Limits::default()).unwrap_err();
+        assert!(
+            error.message.contains("profile changed"),
+            "{field}: {error}"
+        );
+        let lock: Value =
+            serde_json::from_slice(&std::fs::read(output.join("source-lock.json")).unwrap())
+                .unwrap();
+        assert_eq!(lock["profile"]["episode"]["family"], "/source/family");
+        assert_eq!(
+            lock["profile"]["annotations"]["publisher_result"],
+            "/source/result"
+        );
+    }
+}
+
+#[test]
+fn local_reuse_checks_saved_grouping_and_annotations() {
+    for field in ["source_id", "task", "family", "metadata", "annotations"] {
+        let temp = tempfile::tempdir().unwrap();
+        let input = root().join("profiles/local-chat.yaml");
+        let report = prepare(&input, temp.path(), &Limits::default()).unwrap();
+        let path = temp
+            .path()
+            .join("episodes")
+            .join(format!("{}.json", report.episode_ids[0]));
+        let mut episode: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        episode[field] = if ["metadata", "annotations"].contains(&field) {
+            json!({"stale":"mapping"})
+        } else {
+            json!("stale-group")
+        };
+        std::fs::write(path, episode.to_string()).unwrap();
+        let error = prepare(&input, temp.path(), &Limits::default()).unwrap_err();
+        assert!(
+            error.message.contains("different content"),
+            "{field}: {error}"
+        );
+    }
+}
+
+#[test]
 fn joined_tables_report_duplicates_missing_keys_and_disagreeing_identities() {
     let temp = tempfile::tempdir().unwrap();
     let row = fixture("aec-joined.synthetic.json");

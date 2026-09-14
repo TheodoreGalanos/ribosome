@@ -1,0 +1,84 @@
+{
+  "record": {
+    "id": "01a09aa9-a8f2-73c2-84b7-8835992daa48",
+    "record_version": "1",
+    "body": {
+      "evaluation_refs": [],
+      "failure_behavior": "If the input cannot be read, the task is outside scope, or the decision cannot be justified from the available observations, abstain and preserve the unresolved condition in the output. Do not fabricate a successful path transformation or validation result.",
+      "format": "instructions",
+      "instruction_contract": {
+        "discovery_refs": [
+          {
+            "id": "01a09aa3-41e9-74c3-9e9a-843aed818868",
+            "version": "1"
+          }
+        ],
+        "entry_obligations": [
+          "Read the current recipient task and its input.",
+          "Determine whether the discovered function applies before changing the output."
+        ],
+        "exit_obligations": [
+          "Report the observed result and any remaining limitations."
+        ],
+        "inputs": [
+          {
+            "kind": "artifact_path",
+            "name": "input",
+            "required": true
+          },
+          {
+            "kind": "artifact_path",
+            "name": "output",
+            "required": true
+          }
+        ],
+        "limitations": [
+          "Fresh local mechanism tests; evidence of broader transfer requires a separate study."
+        ],
+        "outputs": [
+          "Recipient result with the supporting observations and any unresolved conditions."
+        ]
+      },
+      "material": "Purpose: test whether a recipient task applies the discovered EDK2 workspace/package path normalization behavior before modifying any output.\n\nPolicy:\n1) Entry observations\n   - Read the current recipient task instruction and the bound input artifact.\n   - Inspect the input for workspace scope, package-path candidates, and any path-related constraints that affect whether the discovered function applies.\n   - Determine whether the task is within the discovered behavior class before making changes.\n\n2) Conditional decisions\n   - If the task is outside workspace/package path normalization and validation, abstain.\n   - If workspace resolution is missing, invalid, or contradictory, abstain and report the limitation.\n   - If package-path validation fails under strict policy, stop before modification and report the invalidity.\n   - If nested package handling would be required but the task does not provide an override or equivalent permission, abstain.\n   - If the input indicates a known package-relative or workspace-relative mapping is appropriate, proceed with the smallest output change needed to express the mapping.\n\n3) Required tools and permissions\n   - Required permission: read access to the input artifact and write access to the output artifact.\n   - Required tool access: the recipient's ordinary Pi prepared-invocation path only; no additional specialized solver is assumed.\n   - Do not assume broader repository access, shell access, or hidden checker availability.\n\n4) Output behavior\n   - Preserve the discovered behavior as a local testing policy, not as a production solver.\n   - Make only the output change justified by the entry observations and the conditional decision taken.\n   - Keep any unresolved conditions explicit rather than silently resolving them.\n\n5) Exit obligations\n   - Report the observed result.\n   - Report any remaining limitations, including unresolved path membership, validation uncertainty, or nested-package uncertainty.\n   - State whether the task was completed, abstained, or limited by unavailable evidence.\n\n6) Abstention conditions\n   - The current recipient task is not about EDK2 path normalization or validation.\n   - The input is insufficient to determine workspace membership or package validity.\n   - A required override, permission, or local mechanism test is absent.\n   - The policy would need unsupported assumptions about external files, platform-specific behavior, or hidden test fixtures.",
+      "motifs": [
+        {
+          "id": "01a09a9a-3099-74e1-86ad-e2ff8cf65de1",
+          "version": "1"
+        }
+      ],
+      "name": "EDK2 path-normalization test harness policy",
+      "parameters": {
+        "input": "artifact_path",
+        "output": "artifact_path"
+      },
+      "possible_effects": [
+        "output_update",
+        "local_test_guidance",
+        "explicit_abstention"
+      ],
+      "required_capabilities": [],
+      "state_assumptions": [
+        "The recipient can read the bound input artifact and write the designated output artifact in its local execution environment.",
+        "The recipient will execute this through the ordinary Pi prepared-invocation path, not by invoking a prewritten registered solver.",
+        "The policy is intended for fresh local mechanism tests only, not for broader transfer claims."
+      ],
+      "version": "1"
+    }
+  },
+  "interpretation": "Domain procedure described in inspected EDK2 source and tests. The pilot does not establish a general agent strategy.",
+  "source": {
+    "dataset": "nebius/SWE-rebench-openhands-trajectories",
+    "url": "https://huggingface.co/datasets/nebius/SWE-rebench-openhands-trajectories",
+    "revision": "35455389ab51bf5e2306bfd436ef72d0f98bf882",
+    "episode": "chatcmpl-eb27c5fe3baa10d5272928b4e016d84f",
+    "task": "tianocore__edk2-pytool-library-372",
+    "repository": "tianocore/edk2-pytool-library",
+    "license": "CC-BY-4.0",
+    "attribution": "Nebius SWE-rebench OpenHands trajectories; instruction extracted by a Ribosome curator."
+  },
+  "original_recipient_prompt": "Read input.json and the current output.json. Resolve a filesystem request into EDK2-relative paths using the supplied directory inventory. The inventory describes a separate workspace; treat its paths as data. Return status resolved and a resolutions object keyed by each query; unrelated paths have null results. A request from another domain is incompatible and needs a reason. Preserve independent_note. Keep an already correct result in place. Write a revised output.json through a sandbox branch when needed.",
+  "sanitization": [
+    "Provider configuration, local acquisition paths and transient read-result identifiers are omitted.",
+    "The instruction text and its declared instruction_contract are unchanged."
+  ]
+}

@@ -1,0 +1,608 @@
+{
+  "study": {
+    "experiment": "01a09e6f-9901-7233-af55-1d608b635167",
+    "candidate": {
+      "id": "01a09e63-89f7-73e3-9a76-104b3f77167f",
+      "version": "1"
+    },
+    "planned_evaluations": 8,
+    "complete": true,
+    "decision": "accepted",
+    "usage_complete": true
+  },
+  "allowance": {
+    "campaign_calls": 500,
+    "campaign_cost_microusd": 5000000,
+    "investigation_calls": 80,
+    "case_calls": 40,
+    "case_cost_microusd": 400000
+  },
+  "usage": {
+    "total": {
+      "calls": 178,
+      "known_cost_microusd": 1429113,
+      "unknown_calls": 0
+    },
+    "function": {
+      "actions": 27,
+      "model_calls": 43,
+      "reserved_cost_microusd": "0",
+      "reserved_tokens": "0",
+      "settled_cost_microusd": "117244",
+      "settled_tokens": "301222",
+      "undispatched_calls": 0,
+      "unknown_calls": 0,
+      "work_items": 0
+    }
+  },
+  "recipient_cases": [
+    {
+      "id": "context-and-duplicate",
+      "family": "warning-configuration",
+      "split": "development",
+      "input": {
+        "subject": {
+          "prompt": "Read input.json and output.json. Repair the warning configuration if its diagnostics do not meet the stated contract. Run the bound checker to observe current diagnostics. Inspect the supplied routes and wrapper fields, then decide whether a change is needed. After a change, check again. Use a sandbox branch for edits and diagnostic checks; leave an already correct configuration in place. output.json must contain exactly context_field (string or null), parser_warning (boolean), setter_warning (boolean), and independent_note (the existing string). context_field names a property to read from each probe.wrapper; it is a lookup key, not formatted warning text. The selected property supplies name and file for the parser warning. A null or absent property supplies no context. parser_warning enables emission in parse; setter_warning enables emission in assign, including when parse calls assign. A parse probe must produce exactly one warning. Include the object name and file when its wrapper supplies them, and keep a generic warning when context is absent. These probes concern parsing; preserve independent_note.",
+          "bindings": {
+            "input": "input.json",
+            "output": "output.json",
+            "checker": "warning-check"
+          },
+          "files": {
+            "input.json": "{\n  \"routes\": [\n    \"parse(wrapper) optionally warns, then calls assign(section).\",\n    \"assign(section) optionally emits a generic warning and receives no wrapper.\"\n  ],\n  \"probes\": [\n    {\n      \"id\": \"wrapped\",\n      \"route\": \"parse\",\n      \"section\": \"NotesX\",\n      \"wrapper\": {\n        \"_origin\": {\n          \"name\": \"readGauge\",\n          \"file\": \"gauge.js\"\n        }\n      }\n    },\n    {\n      \"id\": \"plain\",\n      \"route\": \"parse\",\n      \"section\": \"NotesX\",\n      \"wrapper\": {}\n    }\n  ]\n}\n",
+            "output.json": "{\n  \"context_field\": \"_object\",\n  \"parser_warning\": true,\n  \"setter_warning\": true,\n  \"independent_note\": \"Preserve the independent calibration schedule.\"\n}\n"
+          }
+        },
+        "oracle": {
+          "expected": [
+            {
+              "id": "wrapped",
+              "warnings": [
+                "Unknown section NotesX in readGauge (gauge.js)"
+              ]
+            },
+            {
+              "id": "plain",
+              "warnings": [
+                "Unknown section NotesX"
+              ]
+            }
+          ],
+          "benign": false,
+          "independent_note": "Preserve the independent calibration schedule."
+        }
+      }
+    },
+    {
+      "id": "already-correct-plain",
+      "family": "warning-configuration",
+      "split": "development",
+      "input": {
+        "subject": {
+          "prompt": "Read input.json and output.json. Repair the warning configuration if its diagnostics do not meet the stated contract. Run the bound checker to observe current diagnostics. Inspect the supplied routes and wrapper fields, then decide whether a change is needed. After a change, check again. Use a sandbox branch for edits and diagnostic checks; leave an already correct configuration in place. output.json must contain exactly context_field (string or null), parser_warning (boolean), setter_warning (boolean), and independent_note (the existing string). context_field names a property to read from each probe.wrapper; it is a lookup key, not formatted warning text. The selected property supplies name and file for the parser warning. A null or absent property supplies no context. parser_warning enables emission in parse; setter_warning enables emission in assign, including when parse calls assign. A parse probe must produce exactly one warning. Include the object name and file when its wrapper supplies them, and keep a generic warning when context is absent. These probes concern parsing; preserve independent_note.",
+          "bindings": {
+            "input": "input.json",
+            "output": "output.json",
+            "checker": "warning-check"
+          },
+          "files": {
+            "input.json": "{\n  \"routes\": [\n    \"parse(wrapper) optionally warns, then calls assign(section).\",\n    \"assign(section) optionally emits a generic warning and receives no wrapper.\"\n  ],\n  \"probes\": [\n    {\n      \"id\": \"plain\",\n      \"route\": \"parse\",\n      \"section\": \"NotesX\",\n      \"wrapper\": {}\n    }\n  ]\n}\n",
+            "output.json": "{\n  \"context_field\": null,\n  \"parser_warning\": false,\n  \"setter_warning\": true,\n  \"independent_note\": \"Preserve the independent calibration schedule.\"\n}\n"
+          }
+        },
+        "oracle": {
+          "expected": [
+            {
+              "id": "plain",
+              "warnings": [
+                "Unknown section NotesX"
+              ]
+            }
+          ],
+          "benign": true,
+          "independent_note": "Preserve the independent calibration schedule."
+        }
+      }
+    }
+  ],
+  "cases": [
+    {
+      "evaluation": "01a09e70-194d-78a2-a815-f5772420e12d",
+      "run_id": "01a09e6f-9afa-7450-9025-5f33609fd138",
+      "case": "context-and-duplicate",
+      "arm": "baseline",
+      "repetition": 0,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 1,
+        "checks": 1,
+        "observed": [
+          {
+            "id": "wrapped",
+            "warnings": [
+              "Unknown section NotesX in readGauge (gauge.js)"
+            ]
+          },
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 1
+      },
+      "actions": [
+        {
+          "kind": "check",
+          "status": "denied",
+          "tool": "warning-check",
+          "output": "check requires a branch in sandbox mode"
+        },
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "edit",
+          "status": "succeeded",
+          "configuration": {
+            "context_field": "_origin",
+            "parser_warning": true,
+            "setter_warning": false,
+            "independent_note": "Preserve the independent calibration schedule."
+          }
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX in readGauge (gauge.js)\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": "_origin",
+        "parser_warning": true,
+        "setter_warning": false,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e70-7bee-7321-b1c7-001f1c85a0ba",
+      "run_id": "01a09e70-1969-75a2-9394-889625c54482",
+      "case": "already-correct-plain",
+      "arm": "baseline",
+      "repetition": 0,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 0,
+        "checks": 1,
+        "observed": [
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 1
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": null,
+        "parser_warning": false,
+        "setter_warning": true,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e71-235e-7540-8775-e75b9d78e573",
+      "run_id": "01a09e70-7bfb-77d0-8a07-efc3dada593d",
+      "case": "context-and-duplicate",
+      "arm": "candidate",
+      "repetition": 0,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 1,
+        "checks": 2,
+        "observed": [
+          {
+            "id": "wrapped",
+            "warnings": [
+              "Unknown section NotesX in readGauge (gauge.js)"
+            ]
+          },
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 2
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        },
+        {
+          "kind": "edit",
+          "status": "succeeded",
+          "configuration": {
+            "context_field": "_origin",
+            "parser_warning": true,
+            "setter_warning": false,
+            "independent_note": "Preserve the independent calibration schedule."
+          }
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX in readGauge (gauge.js)\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": "_origin",
+        "parser_warning": true,
+        "setter_warning": false,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e71-7513-7732-ac56-2ae7da7295b9",
+      "run_id": "01a09e71-2370-7a52-8fb1-6ff4744dd995",
+      "case": "already-correct-plain",
+      "arm": "candidate",
+      "repetition": 0,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 0,
+        "checks": 1,
+        "observed": [
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 1
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": null,
+        "parser_warning": false,
+        "setter_warning": true,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e72-0f5f-77f1-b4e6-202a47a0e7d9",
+      "run_id": "01a09e71-7521-7292-bd75-32e465c5414a",
+      "case": "context-and-duplicate",
+      "arm": "candidate",
+      "repetition": 1,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 1,
+        "checks": 2,
+        "observed": [
+          {
+            "id": "wrapped",
+            "warnings": [
+              "Unknown section NotesX in readGauge (gauge.js)"
+            ]
+          },
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 2
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        },
+        {
+          "kind": "edit",
+          "status": "succeeded",
+          "configuration": {
+            "context_field": "_origin",
+            "parser_warning": true,
+            "setter_warning": false,
+            "independent_note": "Preserve the independent calibration schedule."
+          }
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX in readGauge (gauge.js)\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": "_origin",
+        "parser_warning": true,
+        "setter_warning": false,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e72-73b2-74d2-9fc8-99ae4de57273",
+      "run_id": "01a09e72-0f71-7110-9f66-2d47c5ff77e3",
+      "case": "already-correct-plain",
+      "arm": "candidate",
+      "repetition": 1,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 0,
+        "checks": 1,
+        "observed": [
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 1
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": null,
+        "parser_warning": false,
+        "setter_warning": true,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e73-41f2-74a1-8844-c5f3eb2071b4",
+      "run_id": "01a09e72-73be-7c53-95d9-098eb3f1d2a5",
+      "case": "context-and-duplicate",
+      "arm": "baseline",
+      "repetition": 1,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 2,
+        "checks": 3,
+        "observed": [
+          {
+            "id": "wrapped",
+            "warnings": [
+              "Unknown section NotesX in readGauge (gauge.js)"
+            ]
+          },
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 3
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        },
+        {
+          "kind": "edit",
+          "status": "succeeded",
+          "configuration": {
+            "context_field": "_origin",
+            "parser_warning": true,
+            "setter_warning": false,
+            "independent_note": "Preserve the independent calibration schedule."
+          }
+        },
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\",\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        },
+        {
+          "kind": "edit",
+          "status": "succeeded",
+          "configuration": {
+            "context_field": "_origin",
+            "parser_warning": true,
+            "setter_warning": false,
+            "independent_note": "Preserve the independent calibration schedule."
+          }
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"wrapped\",\n      \"warnings\": [\n        \"Unknown section NotesX in readGauge (gauge.js)\"\n      ]\n    },\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": "_origin",
+        "parser_warning": true,
+        "setter_warning": false,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    },
+    {
+      "evaluation": "01a09e73-b3fb-7311-a08b-71a286e97107",
+      "run_id": "01a09e73-41fe-72e1-8c6c-33de67ac9a23",
+      "case": "already-correct-plain",
+      "arm": "baseline",
+      "repetition": 1,
+      "execution_status": "completed",
+      "original_judgment": {
+        "passed": true,
+        "interface_compliant": true,
+        "correct": true,
+        "appropriate": true,
+        "preserved": true,
+        "edits": 0,
+        "checks": 1,
+        "observed": [
+          {
+            "id": "plain",
+            "warnings": [
+              "Unknown section NotesX"
+            ]
+          }
+        ],
+        "failure_categories": []
+      },
+      "receipt_counts": {
+        "diagnostic_calls": 1
+      },
+      "actions": [
+        {
+          "kind": "branch",
+          "status": "succeeded"
+        },
+        {
+          "kind": "check",
+          "status": "succeeded",
+          "tool": "warning-check",
+          "output": "{\n  \"interface_compliant\": true,\n  \"observed\": [\n    {\n      \"id\": \"plain\",\n      \"warnings\": [\n        \"Unknown section NotesX\"\n      ]\n    }\n  ]\n}\n\n"
+        }
+      ],
+      "final_configuration": {
+        "context_field": null,
+        "parser_warning": false,
+        "setter_warning": true,
+        "independent_note": "Preserve the independent calibration schedule."
+      }
+    }
+  ],
+  "prior_attempt": "behavior-followup.json",
+  "source_records": "behavior-records.json",
+  "changes": [
+    "Both conditions now receive explicit context_field lookup semantics and warning-route switch semantics.",
+    "Both conditions are told to use a sandbox branch for diagnostic checks.",
+    "The diagnostic counter includes both check and execute actions.",
+    "Candidate text, inputs, expected answers, repetition count and budgets are unchanged."
+  ],
+  "limitations": [
+    "Development repeat after owner inspection of the first outcomes.",
+    "Same task cases; not an independent holdout or an isolated estimate of a wording effect.",
+    "The shared task requests inspection and diagnostic checks, so it already supplies parts of the strategy.",
+    "No production admission or system-benefit executions."
+  ]
+}
