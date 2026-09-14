@@ -46,6 +46,7 @@ test('R7 A: attached repair recovers finalization, preserves downstream stalenes
     await attachment.publish({ id: 'source-change', producer: 'worker', sequence: '1', kind: 'tool.completed', timestamp_ms: String(Date.now()), parents: [], correlation: 'edit-source', artifacts: [{ path: 'source.txt', version: hash('revision-2') }], payload: { source_revision: 2 } });
     await attachment.finish();
     const fault = new DatabaseSync(database);
+    fault.exec('PRAGMA busy_timeout=5000');
     fault.exec("CREATE TRIGGER interrupt_apply_finalization BEFORE UPDATE OF phase ON effects WHEN NEW.phase='finalized' AND json_extract(NEW.body,'$.action.kind')='apply' BEGIN SELECT RAISE(FAIL,'R7 finalization interruption'); END"); fault.close();
     await assert.rejects(attachment.repair(coordinator));
     assert.equal(await readFile(join(directory, 'report.txt'), 'utf8'), 'corrected');
