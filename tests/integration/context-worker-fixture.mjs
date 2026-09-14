@@ -1,5 +1,4 @@
 import { writeFileSync } from 'node:fs';
-import { setTimeout as delay } from 'node:timers/promises';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { createAssistantMessageEventStream } from '@earendil-works/pi-ai';
@@ -11,7 +10,14 @@ const call = peer.call.bind(peer);
 let settings, restoring, phase = 0, interrupted = false, artifactSaved = false, lastTool, captures = 0;
 const metrics = { retainedBytes: 0, maxFrameBytes: 0, maxCheckpointBytes: 0 };
 async function withdraw() {
-  if (settings.withdrawal === 'expiry') await delay(Math.max(0, Number(settings.expires) - Date.now() + 5));
+  if (settings.withdrawal === 'expiry') {
+    // Expire only this memory after observation. Worker startup must not consume
+    // its validity window, and subsequent requests must still check expiry.
+    const db = new DatabaseSync(join(settings.directory, 'state/ribosome.db'));
+    try {
+      db.prepare("UPDATE records SET body=json_set(body,'$.body.expires_ms',?) WHERE id=?").run(String(Date.now() - 1), settings.memory);
+    } finally { db.close(); }
+  }
   else if (settings.withdrawal === 'access') {
     // Host-policy fault injection: the source is no longer released to the
     // run's development-only grant, although its content still exists.
