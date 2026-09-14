@@ -14,13 +14,18 @@ const execution = createAgentExecution(peer, async (model, context) => {
   record({ type: 'provider', run_id: request.run_id, pid: process.pid });
   const result = name => {
     const message = context.messages.findLast(message => message.role === 'toolResult' && message.toolName === name);
-    return message ? JSON.parse(message.content.find(part => part.type === 'text').text) : undefined;
+    if (!message) return undefined;
+    const text = message.content.find(part => part.type === 'text').text;
+    if (message.isError) throw new Error(`${name}: ${text}`);
+    return JSON.parse(text);
   };
   let name, args;
   const parent = request.run_id === 'parent';
   if (parent || (process.env.RIBOSOME_PARK_MODE === 'nested' && request.profile === 'curator')) {
     const work = result('work_request'), wait = result('work_wait'), status = result('work_status');
-    if (!work) { name = 'work_request'; args = { subject: parent ? 'child-check' : 'grandchild-check', profile: parent ? 'curator' : 'caretaker', operator: parent ? 'discovery@1' : 'proofreading@1', reason: 'Execute child-check and report its actual receipt.', evidence_refs: [] }; }
+    // Memory work permits the general nested scheduling exercised here.
+    // Discovery follow-ups are restricted to a single contrast investigation.
+    if (!work) { name = 'work_request'; args = { subject: parent ? 'child-check' : 'grandchild-check', profile: parent ? 'curator' : 'caretaker', operator: parent ? 'memory@1' : 'proofreading@1', reason: 'Execute child-check and report its actual receipt.', evidence_refs: [] }; }
     else if (!wait) { name = 'work_wait'; args = { work_ids: [work.id] }; }
     else if (!status) { name = 'work_status'; args = { id: work.id }; }
     else {
