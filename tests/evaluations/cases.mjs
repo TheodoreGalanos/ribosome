@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { prepare, submit, runCli, json, hash } from '../../examples/local-project/prepare.mjs';
@@ -74,7 +74,10 @@ export function concurrentRevision(prepared) {
         if (!source || !report) continue;
         JSON.parse(report);
         if (JSON.parse(source).measurements[1].value !== 200) continue;
-        await writeFile(join(prepared.directory, 'source.json'), json({ measurements: [{ value: 1, unit: 'm' }, { value: 400, unit: 'cm' }] }));
+        // Readers must see a complete owner revision while they inspect the live source.
+        const revision = join(prepared.directory, 'source-owner-revision.json');
+        await writeFile(revision, json({ measurements: [{ value: 1, unit: 'm' }, { value: 400, unit: 'cm' }] }));
+        await rename(revision, join(prepared.directory, 'source.json'));
         injected = true;
         break;
       }
